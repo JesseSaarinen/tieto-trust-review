@@ -1,0 +1,83 @@
+# Earned-trust review on every PR. Copy into the MessagePack fork as
+# .github/workflows/trust-review.yml. Not active yet: the fork does not exist.
+# Needs repo secrets ANTHROPIC_API_KEY and GEMINI_API_KEY.
+# The review is advice: it posts a comment and sets a label, it never approves or merges.
+name: trust-review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out the change
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          path: target
+
+      - name: Check out the reviewer
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/tieto-trust-review
+          path: reviewer
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: target/global.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install reviewer
+        working-directory: reviewer
+        run: npm ci
+
+      - name: Requirement from the PR (linked issue number in the PR title or body, e.g. "#2283")
+        id: req
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_TEXT: ${{ github.event.pull_request.title }} ${{ github.event.pull_request.body }}
+        run: |
+          id=$(echo "$PR_TEXT" | grep -oE '#[0-9]+' | head -1 | tr -d '#')
+          mkdir -p reviewer/requirements
+          if [ -n "$id" ]; then
+            gh issue view "$id" -R MessagePack-CSharp/MessagePack-CSharp --json number,title,body \
+              -q '"# REQ-" + (.number|tostring) + ": " + .title + "\n\n" + .body' > reviewer/requirements/REQ-$id.md
+          else
+            id=PR${{ github.event.pull_request.number }}
+            echo "$PR_TEXT" > reviewer/requirements/REQ-$id.md
+          fi
+          echo "id=REQ-$id" >> "$GITHUB_OUTPUT"
+
+      - name: Review
+        working-directory: reviewer
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          git -C ../target fetch origin ${{ github.base_ref }}
+          node src/cli.ts review --repo ../target --branch HEAD \
+            --base $(git -C ../target merge-base HEAD origin/${{ github.base_ref }}) \
+            --req ${{ steps.req.outputs.id }} --out packs --tag pr
+
+      - name: Post the evidence pack as a PR comment and label the routing
+        working-directory: reviewer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} -R ${{ github.repository }} --body-file packs/HEAD.pr.md
+          level=$(node -e "console.log(require('./packs/HEAD.pr.json').routing.level.replace(' ','-'))")
+          gh pr edit ${{ github.event.pull_request.number }} -R ${{ github.repository }} --add-label "review:$level" || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: evidence-pack
+          path: reviewer/packs/

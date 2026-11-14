@@ -1,0 +1,23 @@
+{
+  "name": "tieto-trust-review",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "review": "node src/cli.ts review",
+    "regrade": "node src/cli.ts regrade",
+    "batch": "node src/cli.ts batch",
+    "stats": "node src/cli.ts stats",
+    "signoff": "node src/cli.ts signoff",
+    "ledger": "node src/cli.ts ledger",
+    "selftest": "node src/selftest.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
+    "@google/genai": "^3.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
+  }
+}

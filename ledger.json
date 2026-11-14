@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "earn_back_after": 5,
+  "trusted_after": 10,
+  "areas": {
+    "src/MessagePack.SourceGenerator/CodeAnalysis": {
+      "reviews": 0,
+      "signoffs": 0,
+      "findings_accepted": 0,
+      "findings_rejected": 0,
+      "escapes": 1,
+      "clean_since_escape": 0,
+      "status": "probation",
+      "history": [
+        {
+          "at": "2026-11-14T12:09:26.107Z",
+          "event": "escape",
+          "ref": "planted-bug audit 14 Nov: seeded-01 escaped at L2 by the line rule, a finding described it outside the 3-line window"
+        }
+      ]
+    }
+  }
+}

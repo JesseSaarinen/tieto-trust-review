@@ -1,0 +1,1093 @@
+{
+  "meta": {
+    "requirement_id": "REQ-2234",
+    "branch": "seeded-15",
+    "base": "32258fdbee4bcd653c79f51b4376b5103c6f4d27",
+    "commit": "6c6d8af6a85308ae70d01bb1ffedba437cc5c113",
+    "generated_at": "2026-11-13T21:30:08.969Z",
+    "author_model": "claude-opus-5-5",
+    "breaker_model": "none",
+    "stubbed": [
+      "author (ANTHROPIC_API_KEY missing)",
+      "breaker (GEMINI_API_KEY missing)"
+    ],
+    "pack_id": "2ca57bb44c12"
+  },
+  "requirement": "# REQ-2234: The analyzer does not work if SuppressSourceGeneration = true\n\nSource: https://github.com/MessagePack-CSharp/MessagePack-CSharp/issues/2234\n\n#### Bug description\n\nThe analyzer does not work if SuppressSourceGeneration = true. This has happened since version 3.1.1. It still worked in 3.1.0.\n\n\n",
+  "files": [
+    {
+      "path": "README.md",
+      "status": "M",
+      "added": 14,
+      "removed": 0,
+      "kind": "doc",
+      "area": "README.md"
+    },
+    {
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "status": "M",
+      "added": 18,
+      "removed": 4,
+      "kind": "src",
+      "area": "src/MessagePack.SourceGenerator/CodeAnalysis"
+    },
+    {
+      "path": "src/MessagePack/MessagePackSecurity.cs",
+      "status": "M",
+      "added": 1,
+      "removed": 1,
+      "kind": "src",
+      "area": "src/MessagePack"
+    },
+    {
+      "path": "tests/MessagePack.SourceGenerator.ExecutionTests/SuppressedSourceGenerationTests.cs",
+      "status": "A",
+      "added": 37,
+      "removed": 0,
+      "kind": "test",
+      "area": "tests/MessagePack.SourceGenerator.ExecutionTests"
+    },
+    {
+      "path": "tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs",
+      "status": "A",
+      "added": 193,
+      "removed": 0,
+      "kind": "test",
+      "area": "tests/MessagePack.SourceGenerator.Tests"
+    }
+  ],
+  "story": {
+    "summary": "[STUB] no Claude call made",
+    "why": "",
+    "touches_beyond_requirement": [],
+    "confidence_overview": "none"
+  },
+  "claims": [],
+  "static_checks": [
+    {
+      "id": "S1",
+      "name": "T4 templates and their compiled .cs change together",
+      "result": "n/a",
+      "detail": "no templates changed",
+      "files": []
+    },
+    {
+      "id": "S2",
+      "name": "Generated snapshot files change uniformly",
+      "result": "n/a",
+      "detail": "no generated files changed",
+      "files": []
+    },
+    {
+      "id": "S3",
+      "name": "No new public API in shipped assemblies",
+      "result": "pass",
+      "detail": "no public declarations added in shipped assemblies",
+      "files": []
+    },
+    {
+      "id": "S4",
+      "name": "No new user-visible analyzer rules",
+      "result": "pass",
+      "detail": "no rule descriptors or release notes changed; existing ids mentioned: MsgPack004, MsgPack005, MsgPack015, MsgPack003, MsgPack012, MsgPack011, MsgPack016, MsgPack017",
+      "files": []
+    },
+    {
+      "id": "S5",
+      "name": "Serialized output (wire format) untouched",
+      "result": "pass",
+      "detail": "no reader/writer calls changed in runtime code or formatter templates",
+      "files": []
+    },
+    {
+      "id": "S6",
+      "name": "No changes to untrusted-input handling",
+      "result": "fail",
+      "detail": "deserialization or unsafe code changed in: src/MessagePack/MessagePackSecurity.cs L233",
+      "files": [
+        "src/MessagePack/MessagePackSecurity.cs"
+      ]
+    },
+    {
+      "id": "S7",
+      "name": "Existing tests not weakened",
+      "result": "pass",
+      "detail": "no assertions or test cases removed",
+      "files": []
+    },
+    {
+      "id": "S8",
+      "name": "New tests contain an assertion",
+      "result": "pass",
+      "detail": "10 new test(s), each with an assertion or verifier call",
+      "files": []
+    }
+  ],
+  "tests": {
+    "environment_blocked": 171,
+    "project_results": [
+      {
+        "project": "tests/MessagePack.SourceGenerator.ExecutionTests/MessagePack.SourceGenerator.ExecutionTests.csproj",
+        "status": "build failed on base too",
+        "errors": [
+          "SuppressedSourceGenerationTests.cs(23,50): error CS0117: 'GeneratedMessagePackResolver' does not contain a definition for 'Instance'"
+        ],
+        "new_errors": [
+          "SuppressedSourceGenerationTests.cs(23,50): error CS0117: 'GeneratedMessagePackResolver' does not contain a definition for 'Instance'"
+        ]
+      },
+      {
+        "project": "tests/MessagePack.SourceGenerator.Tests/MessagePack.SourceGenerator.Tests.csproj",
+        "status": "tests ran",
+        "errors": [],
+        "new_errors": []
+      }
+    ],
+    "status": "ran",
+    "sdk": "8.0.428",
+    "projects": [
+      "tests/MessagePack.SourceGenerator.ExecutionTests/MessagePack.SourceGenerator.ExecutionTests.csproj",
+      "tests/MessagePack.SourceGenerator.Tests/MessagePack.SourceGenerator.Tests.csproj"
+    ],
+    "passed": 4,
+    "failed": 0,
+    "skipped": 0,
+    "cases": [
+      {
+        "name": "CustomStringKeyFormatterTests.RecordWithWithInitOnlyProps",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack014NullableRefTypeFormatterTests.RefTypeWithoutNullableGetsFixed",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack001SpecifyOptionsAnalyzerTests.Invocation_ExplicitlyNull",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterType(initialModifiers: \"\", expectedModifiers: \"internal \")",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MemberSerializationInfoTests.Equals_ByValue",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterOnlyWithParameterizedConstructor",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.AdditionalAllowTypes",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter(container: None, usesMapMode: True)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "CustomStringKeyFormatterTests.RecordWithPrimaryConstructor",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenericsFormatterTests.GenericsUnionFormatter_Nested",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "CompositeResolverGeneratorTests.CompositeResolver_MixedResolverTypes",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.CustomFormatterForGenericWithConstraints",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembers",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembersOfRecordStructWithPrimaryCtor",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "SuppressSourceGenerationAnalyzerTests.MemberTypeMustBeMessagePackObjectIsReported",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetter",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "SuppressSourceGenerationAnalyzerTests.MemberWithoutKeyIsReported",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.ArrayTypedProperty",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.ExcludeFormatterFromSourceGeneratedResolver",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack002UseConstantOptionsAnalyzerTests.Properties",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToGenericType",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenericsFormatterTests.Generics_Constraints_ReferenceType_Nullable",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack002UseConstantOptionsAnalyzerTests.Fields",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembersOfRecord",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "SuppressSourceGenerationAnalyzerTests.AllowPrivateRequiredIsReported",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.GenericCustomFormatter",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "ImplicitResolverForCustomFormattersTests.MultipleFunctionalCustomFormattersForType_OnlyOneNonExcluded",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack002UseConstantOptionsAnalyzerTests.Members_BasedOnStaticOptions",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterOnlyIgnore",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.MessageFormatterAttribute",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembers_MixedVisibility",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "ImplicitResolverForCustomFormattersTests.OpenGenericFormatter",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "SuppressSourceGenerationAnalyzerTests.DuplicateKeysAreReportedWithoutAnalyzerFailureForGeneratedTypes",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterOnlyWithParameterizedConstructorPartially",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToTypeForRecordPrimaryConstructor",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack002UseConstantOptionsAnalyzerTests.Invocation_WithMutableStaticOptions",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_Nested_NonPartialTypes(type: \"class\", languageVersion: CSharp7_3)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack014NullableRefTypeFormatterTests.RefTypeWithNullableAnnotation",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToTypeForRecord1",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToType_Generic",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter_CollidingTypeNames",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.NoPrivateAccessNeeded",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.UnionFormatter(container: Namespace)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembers_PublicOnly",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "SuppressSourceGenerationAnalyzerTests.DuplicateIntKeysAreReportedWithoutAnalyzerFailure",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenericsFormatterTests.NullableFormatter",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack015AllowPrivateRequiredTests.AddForNonPublicDeserializingConstructor",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenericsFormatterTests.Generics_Constraints_Struct",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "SuppressSourceGenerationAnalyzerTests.MixedKeyKindsAreReportedWithoutAnalyzerFailure",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenericsFormatterTests.GenericsOfT1T2Formatter",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenericsFormatterTests.Generics_Constraints_NullableReferenceType",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MessagePackFormatterAttributeTests.CanGenerateMessagePackFormatterAttr",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenericsFormatterTests.Generics_Constraints_Multiple",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.NonDefaultDeserializingConstructor_Private",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.NoGenerationForAnnotationOnly",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.NullStringKey",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenericsFormatterTests.RecursiveGenerics_Direct",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToType_Properties",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenericsFormatterTests.NestedGenericTypes",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter(container: NestingClass, usesMapMode: True)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AbstractFormatterDoesNotAttractAttention",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterType(initialModifiers: \"private protected \", expectedModifiers: \"internal \")",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.UnionFormatter(container: NestingClass)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetterWithParameterizedConstructorAndDefaultValue",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack001SpecifyOptionsAnalyzerTests.InvocationWithOptions_LocalVariable",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.NameCollisionsInForceMapMode",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.MixType_CollidingTypeNames",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.SystemCollectionsObjectModelCollection",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.GenericType_CollidingTypeNames",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetterWithParameterizedConstructorPartially",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.InterfaceUnionUsedWithNullableRefAnnotation",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers(type: \"class\", version: CSharp7_3)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers(type: \"record struct\", version: CSharp10)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack012InaccessibleDataTypeTests.InaccessibleNestedDataType",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.SystemMemoryTypes",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToType_Nullable",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToField_WithComment",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.GenericWithConstraintsThatReferenceTypeParameter",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.CustomFormatterViaAttributeOnField(usesMapMode: False)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.EmbeddedTypes",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_MapMode",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter(container: Namespace, usesMapMode: True)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack011PartialTypeRequiredTests.NestedPartialTypeRequiresPartialDeclaringType",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MultipleTypesTests.TwoTypes(usesMapMode: False)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack015AllowPrivateRequiredTests.SetWhenNonPublicPropertyIsAnnotated",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.InitPropertyInitializer",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_WithNamespace",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterConstructor(initialModifiers: \"\", expectedModifiers: \"internal \")",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "ImplicitResolverForCustomFormattersTests.MultipleFunctionalCustomFormattersForType_MultiFormatter",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembersOfRecordStruct",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetterWithParameterizedConstructor",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack011PartialTypeRequiredTests.NestedPartialTypeRequiresPartialSelfAndDeclaringType",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_Nested_NonPartialTypes(type: \"struct\", languageVersion: CSharp7_3)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToTypeForRecord2",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembers_AllowPrivateAttribute",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenericsFormatterTests.GenericsOfTFormatter",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack001SpecifyOptionsAnalyzerTests.Invocation_OmittedOptionalParameter",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "FullModelTests.Equals_ByValue",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_NonPartialTypes(type: \"class\", languageVersion: CSharp7_3)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MultipleTypesTests.ZeroTypes",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.GenericType",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterConstructor(initialModifiers: \"protected \", expectedModifiers: \"protected internal \")",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "FullModelTests.Equals_Null",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers(type: \"record\", version: CSharp9)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenericsFormatterTests.GenericsUnionFormatter",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.SpecifyFormatterFromStockSet",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack012InaccessibleDataTypeTests.InaccessibleNestedDataType_OuterNesting",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.CustomFormatterViaAttributeOnField(usesMapMode: True)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembersOfRecordWithPrimaryCtor",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.NoPrivateMemberCollected",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MultipleTypesTests.TwoTypes(usesMapMode: True)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenericsFormatterTests.Generics_Defined_In_ReferencedProject",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "ImplicitResolverForCustomFormattersTests.CustomFormatterWithoutDefaultConstructor_Excluded",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_NonPartialTypes(type: \"record\", languageVersion: CSharp9)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.InvalidMessageFormatterType",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack015AllowPrivateRequiredTests.AddForPublicTypeNestedUnderNonPublicType",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterType(initialModifiers: \"private \", expectedModifiers: \"internal \")",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterConstructor(initialModifiers: \"private \", expectedModifiers: \"internal \")",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.DeserializingConstructorParameterMemberTypeAssignability_Incompatible",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenericsFormatterTests.WellKnownGenericsFormatter",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.GenericDataTypeWithPrivateMember",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterOnlyMixed",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.NestedMessagePackObjects_Array",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenericsFormatterTests.GenericsOfTFormatter_FormatterOnly",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.CustomFormatterViaAttributeOnProperty(usesMapMode: False)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterConstructor(initialModifiers: \"private protected \", expectedModifiers: \"internal \")",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterType(initialModifiers: \"protected \", expectedModifiers: \"protected internal \")",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.NonGenericType_CollidingTypeNames",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "CompositeResolverGeneratorTests.CompositeResolver_Nested",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.DerivedAttributes",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterOnlyDefaultValue",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_NonPartialTypes(type: \"struct\", languageVersion: CSharp7_3)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.Array2DJaggedProperty",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.NoMessagePackReference",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenericsFormatterTests.GenericsOfTFormatter_WithKnownTypes",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.AdditionalFormatterTypes",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "UnionSerializationInfoTests.Equals_ByValue",
+        "outcome": "Passed"
+      },
+      {
+        "name": "SuppressSourceGenerationAnalyzerTests.SourceGenerationOnlyDiagnosticsAreNotReportedWhenSuppressed",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.GenericTypeArg",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.CustomFormatterViaAttributeOnProperty(usesMapMode: True)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterOnlyWithParameterizedConstructorDefaultValue",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetterWithDefaultValue",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "ImplicitResolverForCustomFormattersTests.MultipleFunctionalCustomFormattersForType",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter(container: Namespace, usesMapMode: False)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToType_Fields",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.DerivedAttributes_SourceGenerationDisabled",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_Nested_NonPartialTypes(type: \"record\", languageVersion: CSharp9)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.AdditionalFormatterTypes_RedundantAttribute",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack001SpecifyOptionsAnalyzerTests.Invocation_OmittedOptionalParameter_VB",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenericsFormatterTests.Generics_Constraints_Type",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.CodeFixAppliesAcrossFiles",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "SuppressSourceGenerationAnalyzerTests.DuplicateStringKeysAreReportedWithoutAnalyzerFailure",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.UnionFormatter(container: None)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "ImplicitResolverForCustomFormattersTests.CustomFormatterWithoutDefaultConstructor",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack014NullableRefTypeFormatterTests.ValueTypeWithoutNullableAnnotation",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter(container: None, usesMapMode: False)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack011PartialTypeRequiredTests.CodeFixOffered",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.CustomFormatterWithSingletonPattern",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.NestedMessagePackObjects",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.SimplifiedNameForKeywordsAndSyntaxSugar",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.DeserializingConstructorParameterMemberTypeAssignability_MemberAssignsToParamType",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddIgnoreAttributesToMembers",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.PrivateMembersInBaseClassNeedNoAttribution",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.ImplicitFormatterTypes",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetterWithDefaultValueInputPartially",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetterWithParameterizedConstructorDoNotUseSetter",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack014NullableRefTypeFormatterTests.RefTypeWithoutNullableAnnotationsEnabled",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.DoNotAddAttributesToClassWithPrimaryCtor",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack002UseConstantOptionsAnalyzerTests.Invocation_WithImmutableStaticOptions_VB",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers(type: \"struct\", version: CSharp7_3)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack002UseConstantOptionsAnalyzerTests.Invocation_WithImmutableStaticOptions",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack015AllowPrivateRequiredTests.AddWhenNonPublicPropertyIsAnnotated",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter(container: NestingClass, usesMapMode: False)",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "GenerationTests.NoFieldWithCustomFormatterCollected",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      },
+      {
+        "name": "MsgPack015AllowPrivateRequiredTests.AddForNonPublicType",
+        "outcome": "Blocked",
+        "message": "System.IO.FileLoadException : Could not load file or assembly 'C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-6c6d8af6a8\\bin\\MessagePack.SourceGenerator.Tests\\Release\\net8.0\\MessagePack.dll'. An Application Control policy has blocked this file. (0x800711C7)"
+      }
+    ],
+    "durationSec": 53,
+    "logTail": "  Failed MsgPack00xAnalyzerTests.AddAttributesToMembers_PublicOnly [< 1 ms]\r\n  Failed GenerationTests.SpecifyFormatterFromStockSet [< 1 ms]\r\n  Failed MsgPack00xAnalyzerTests.AddIgnoreAttributesToMembers [< 1 ms]\r\n  Failed GenerationTests.GenericType_CollidingTypeNames [< 1 ms]\r\n  Failed GenerationTests.GenericWithConstraintsThatReferenceTypeParameter [< 1 ms]\r\n  Failed GenerationTests.CustomFormatterForGenericWithConstraints [< 1 ms]\r\n  Failed GenerationTests.AdditionalFormatterTypes_RedundantAttribute [< 1 ms]\r\n  Failed GenerationTests.NoGenerationForAnnotationOnly [< 1 ms]\r\n  Failed GenerationTests.SystemCollectionsObjectModelCollection [< 1 ms]\r\n  Failed GenerationTests.MixType_CollidingTypeNames [< 1 ms]\r\n  Failed GenerationTests.InterfaceUnionUsedWithNullableRefAnnotation [< 1 ms]\r\n  Failed GenerationTests.GenericDataTypeWithPrivateMember [< 1 ms]\r\n  Failed GenerationTests.ArrayTypedProperty [< 1 ms]\r\n  Failed GenerationTests.SystemMemoryTypes [< 1 ms]\r\n  Failed GenerationTests.NoPrivateMemberCollected [< 1 ms]\r\n  Failed GenerationTests.ExcludeFormatterFromSourceGeneratedResolver [< 1 ms]\r\n  Failed GenerationTests.DeserializingConstructorParameterMemberTypeAssignability_MemberAssignsToParamType [< 1 ms]\r\n  Failed MsgPack002UseConstantOptionsAnalyzerTests.Invocation_WithImmutableStaticOptions_VB [2 s]\r\n  Failed MsgPack002UseConstantOptionsAnalyzerTests.Properties [< 1 ms]\r\n  Failed MsgPack002UseConstantOptionsAnalyzerTests.Members_BasedOnStaticOptions [< 1 ms]\r\n  Failed MsgPack002UseConstantOptionsAnalyzerTests.Fields [1 ms]\r\n  Failed MsgPack002UseConstantOptionsAnalyzerTests.Invocation_WithImmutableStaticOptions [< 1 ms]\r\n  Failed MsgPack001SpecifyOptionsAnalyzerTests.Invocation_OmittedOptionalParameter_VB [2 s]\r\n  Failed MsgPack001SpecifyOptionsAnalyzerTests.Invocation_ExplicitlyNull [5 ms]\r\nFailed!  - Failed:   171, Passed:     4, Skipped:     0, Total:   175, Duration: 2 s - MessagePack.SourceGenerator.Tests.dll (net8.0)\r"
+  },
+  "refusals": [
+    {
+      "id": "R1",
+      "source": "static check",
+      "rule": "safety",
+      "what": "Code that reads untrusted input changed",
+      "why": "Deserializers parse bytes from the network; mistakes become security bugs. Needs a human with security context.",
+      "files": [
+        {
+          "path": "src/MessagePack/MessagePackSecurity.cs",
+          "lines": [
+            233
+          ]
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "path": "tests/MessagePack.SourceGenerator.ExecutionTests/SuppressedSourceGenerationTests.cs",
+      "line": 23,
+      "description": "New compile error vs base in MessagePack.SourceGenerator.ExecutionTests.csproj (the base has other build errors on this machine, so this may share their cause): SuppressedSourceGenerationTests.cs(23,50): error CS0117: 'GeneratedMessagePackResolver' does not contain a definition for 'Instance'",
+      "severity": "medium",
+      "source": "test run"
+    }
+  ],
+  "out_of_scope": [],
+  "routing": {
+    "level": "full read",
+    "reasons": [
+      "Refused to decide (safety: Code that reads untrusted input changed). The owner reads these files in full."
+    ],
+    "must_read": [
+      {
+        "path": "src/MessagePack/MessagePackSecurity.cs",
+        "lines": "whole file diff",
+        "why": "R1 safety"
+      }
+    ],
+    "not_required": [
+      {
+        "what": "docs",
+        "count": 1,
+        "why": "prose; covered by the story"
+      },
+      {
+        "what": "other source/test files not flagged",
+        "count": 3,
+        "why": "covered by passing evidence or not flagged by any check"
+      }
+    ],
+    "real_files": 5,
+    "total_files": 5
+  },
+  "not_checked": [
+    "171 test(s) could not run because this machine blocked them (Windows Application Control); they count as not run, not as failures.",
+    "Test project MessagePack.SourceGenerator.ExecutionTests.csproj: build failed on base too; the change adds 1 new compile error(s), e.g. SuppressedSourceGenerationTests.cs(23,50): error CS0117: 'GeneratedMessagePackResolver' does not contain a definition for 'Instance'.",
+    "Model calls stubbed: author (ANTHROPIC_API_KEY missing), breaker (GEMINI_API_KEY missing)",
+    "Behaviour on other target frameworks / Unity / NativeAOT was not exercised.",
+    "Performance and allocation impact were not measured."
+  ]
+}

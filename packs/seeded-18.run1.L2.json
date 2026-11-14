@@ -1,0 +1,1591 @@
+{
+  "meta": {
+    "requirement_id": "REQ-2234",
+    "branch": "seeded-18",
+    "base": "32258fdbee4bcd653c79f51b4376b5103c6f4d27",
+    "commit": "755cef96b360720d74686dbdca7bf726d91329f5",
+    "generated_at": "2026-11-14T02:47:41.230Z",
+    "author_model": "claude-opus-5-5",
+    "breaker_model": "gemini-4-carbon",
+    "prompt_version": "v1",
+    "options": {
+      "tests": true,
+      "breaker": true
+    },
+    "missing": [
+      {
+        "part": "tests",
+        "scope": "partial",
+        "reason": "test project MessagePack.SourceGenerator.ExecutionTests.csproj: build failed on base too",
+        "effect": "claims that rely on tests in that project are not backed and release nothing"
+      }
+    ],
+    "usage": {
+      "author": null,
+      "breaker": null
+    },
+    "cost_usd": {
+      "author": 0,
+      "breaker": 0,
+      "total": 0
+    },
+    "seconds": {
+      "author": null,
+      "breaker": null,
+      "tests": 78,
+      "tests_cached": true,
+      "total": 0
+    },
+    "regraded_from": {
+      "pack_id": "a74124973266",
+      "file": "seeded-18.run1.json",
+      "layers": "full"
+    },
+    "pack_id": "c0e0ebf25d23"
+  },
+  "requirement": "# REQ-2234: The analyzer does not work if SuppressSourceGeneration = true\n\nSource: https://github.com/MessagePack-CSharp/MessagePack-CSharp/issues/2234\n\n#### Bug description\n\nThe analyzer does not work if SuppressSourceGeneration = true. This has happened since version 3.1.1. It still worked in 3.1.0.\n\n\n",
+  "files": [
+    {
+      "path": "README.md",
+      "status": "M",
+      "added": 14,
+      "removed": 0,
+      "kind": "doc",
+      "area": "README.md"
+    },
+    {
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "status": "M",
+      "added": 18,
+      "removed": 4,
+      "kind": "src",
+      "area": "src/MessagePack.SourceGenerator/CodeAnalysis"
+    },
+    {
+      "path": "tests/MessagePack.SourceGenerator.ExecutionTests/SuppressedSourceGenerationTests.cs",
+      "status": "A",
+      "added": 37,
+      "removed": 0,
+      "kind": "test",
+      "area": "tests/MessagePack.SourceGenerator.ExecutionTests"
+    },
+    {
+      "path": "tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs",
+      "status": "A",
+      "added": 193,
+      "removed": 0,
+      "kind": "test",
+      "area": "tests/MessagePack.SourceGenerator.Tests"
+    }
+  ],
+  "story": {
+    "summary": "The agent changed the shared member-collection code in TypeCollector so it no longer crashes on invalid key layouts. For mixed int/string keys, it now reports the diagnostic and skips the member (`continue`). For duplicate int or string keys, it guards each `Dictionary.Add` with `ContainsKey`. It adds analyzer tests for `[MessagePackObject(SuppressSourceGeneration = true)]` types, execution tests showing such a type gets no generated formatter and still round-trips at run time, and a README section describing which diagnostics apply to suppressed types.",
+    "why": "Issue #2234 says the analyzer stopped reporting diagnostics for SuppressSourceGeneration types in 3.1.1. The visible fix implies the root cause was an exception thrown while collecting members with duplicate or mixed keys, which kills the analyzer. However, nothing in the diff touches SuppressSourceGeneration-specific logic. The reviewer cannot confirm from the diff alone that this is the 3.1.0 → 3.1.1 regression rather than a separate crash.",
+    "touches_beyond_requirement": [
+      "The TypeCollector changes apply to every [MessagePackObject] type, including ones that do get a generated formatter, not only suppressed types.",
+      "A new README section documents analyzer behavior for suppressed types, including which rules are and are not reported.",
+      "Execution tests check run-time round-tripping and that no generated formatter exists; this is beyond the analyzer bug."
+    ],
+    "confidence_overview": "Medium that the crash-avoidance edits are correct for the duplicate and mixed-key cases; the new tests cover these. Low-to-medium that this is the whole fix for the reported regression: the diff shows no change to any SuppressSourceGeneration branch. It is unclear whether tests such as MemberWithoutKeyIsReported would have failed before the change. High that the new tests exist and assert specific diagnostics."
+  },
+  "claims": [
+    {
+      "id": "C1",
+      "text": "When a member's key kind (int vs string) differs from the other members, TypeCollector reports DoNotMixStringAndIntKeys and skips that member instead of continuing with a null key. This applies in both member-collection paths (properties and fields).",
+      "requirement_quote": "The analyzer does not work if SuppressSourceGeneration = true.",
+      "kind": "behavior",
+      "confidence": "medium",
+      "citations": [
+        {
+          "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+          "start_line": 1005,
+          "end_line": 1009
+        },
+        {
+          "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+          "start_line": 1145,
+          "end_line": 1149
+        }
+      ],
+      "tests": [
+        "MixedKeyKindsAreReportedWithoutAnalyzerFailure"
+      ],
+      "static_checks": [],
+      "method": "test run",
+      "evidence": [
+        "test `MixedKeyKindsAreReportedWithoutAnalyzerFailure` passed (1 case)"
+      ],
+      "breaker": {
+        "claim_id": "C1",
+        "verdict": "disputed",
+        "reason": "While TypeCollector.cs adds continue after reporting DoNotMixStringAndIntKeys in both the property loop (line 1008) and the field loop (line 1148), the sole named test MixedKeyKindsAreReportedWithoutAnalyzerFailure (SuppressSourceGenerationAnalyzerTests.cs lines 125-144) declares only two properties and zero fields, so the claimed field-collection path at lines 1145-1149 is never exercised by the named test (nor is the string-key-then-int-key branch).",
+        "citations": [
+          {
+            "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+            "line": 1148
+          },
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs",
+            "line": 125
+          }
+        ]
+      },
+      "citation_problems": [],
+      "status": "disputed",
+      "releases_lines": false
+    },
+    {
+      "id": "C2",
+      "text": "A duplicate int or string key no longer causes Dictionary.Add to throw. The second member with the same key is not added; the existing duplicate-key diagnostic is expected to have been reported earlier.",
+      "requirement_quote": "The analyzer does not work if SuppressSourceGeneration = true.",
+      "kind": "behavior",
+      "confidence": "medium",
+      "citations": [
+        {
+          "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+          "start_line": 1023,
+          "end_line": 1026
+        },
+        {
+          "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+          "start_line": 1039,
+          "end_line": 1042
+        },
+        {
+          "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+          "start_line": 1163,
+          "end_line": 1166
+        },
+        {
+          "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+          "start_line": 1179,
+          "end_line": 1182
+        }
+      ],
+      "tests": [
+        "DuplicateIntKeysAreReportedWithoutAnalyzerFailure",
+        "DuplicateStringKeysAreReportedWithoutAnalyzerFailure",
+        "DuplicateKeysAreReportedWithoutAnalyzerFailureForGeneratedTypes"
+      ],
+      "static_checks": [],
+      "method": "test run",
+      "evidence": [
+        "test `DuplicateIntKeysAreReportedWithoutAnalyzerFailure` passed (1 case)",
+        "test `DuplicateStringKeysAreReportedWithoutAnalyzerFailure` passed (1 case)",
+        "test `DuplicateKeysAreReportedWithoutAnalyzerFailureForGeneratedTypes` passed (1 case)"
+      ],
+      "breaker": {
+        "claim_id": "C2",
+        "verdict": "disputed",
+        "reason": "All three named tests (SuppressSourceGenerationAnalyzerTests.cs lines 81-100, 103-122, and 147-166) declare only properties and no fields, so none of them test the cited field-collection guards at TypeCollector.cs lines 1163-1166 and 1179-1182; furthermore, the earlier duplicate-key diagnostic reporting for intMembers and fields is outside the diff hunks and unverified for fields.",
+        "citations": [
+          {
+            "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+            "line": 1163
+          },
+          {
+            "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+            "line": 1179
+          },
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs",
+            "line": 81
+          },
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs",
+            "line": 103
+          },
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs",
+            "line": 147
+          }
+        ]
+      },
+      "citation_problems": [],
+      "status": "disputed",
+      "releases_lines": false
+    },
+    {
+      "id": "C6",
+      "text": "Scope: the TypeCollector edits are not limited to suppressed types. They change collection for every MessagePackObject type, including generated ones. No public API, rule descriptor or wire-format code is changed.",
+      "requirement_quote": "",
+      "kind": "scope",
+      "confidence": "high",
+      "citations": [
+        {
+          "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+          "start_line": 1008,
+          "end_line": 1008
+        },
+        {
+          "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+          "start_line": 1148,
+          "end_line": 1148
+        }
+      ],
+      "tests": [
+        "DuplicateKeysAreReportedWithoutAnalyzerFailureForGeneratedTypes"
+      ],
+      "static_checks": [
+        "S3",
+        "S4",
+        "S5"
+      ],
+      "method": "test run",
+      "evidence": [
+        "test `DuplicateKeysAreReportedWithoutAnalyzerFailureForGeneratedTypes` passed (1 case)",
+        "static check S3 passed",
+        "static check S4 passed",
+        "static check S5 passed"
+      ],
+      "breaker": {
+        "claim_id": "C6",
+        "verdict": "disputed",
+        "reason": "The claim cites only TypeCollector.cs lines 1008 and 1148 (the mixed-key continue statements), omitting the duplicate-key edits at lines 1023-1026, 1039-1042, 1163-1166, and 1179-1182, and the named test DuplicateKeysAreReportedWithoutAnalyzerFailureForGeneratedTypes (SuppressSourceGenerationAnalyzerTests.cs lines 147-166) uses two [Key(0)] properties (duplicate int keys), exercising lines 1023-1026 and never executing either cited line 1008 or 1148.",
+        "citations": [
+          {
+            "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+            "line": 1008
+          },
+          {
+            "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+            "line": 1148
+          },
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs",
+            "line": 147
+          }
+        ]
+      },
+      "citation_problems": [],
+      "status": "disputed",
+      "releases_lines": false
+    },
+    {
+      "id": "C7",
+      "text": "The README documents that suppressed types are still validated for MsgPack004, MsgPack005, MsgPack015, MsgPack003 and MsgPack012, but not for MsgPack011, MsgPack016 or MsgPack017.",
+      "requirement_quote": "",
+      "kind": "docs",
+      "confidence": "medium",
+      "citations": [
+        {
+          "path": "README.md",
+          "start_line": 1620,
+          "end_line": 1632
+        }
+      ],
+      "tests": [],
+      "static_checks": [],
+      "method": "AI reading only",
+      "evidence": [],
+      "breaker": {
+        "claim_id": "C7",
+        "verdict": "upheld",
+        "reason": "Checked README.md lines 1620-1632: lines 1625-1630 explicitly list MsgPack004, MsgPack005, MsgPack015, MsgPack003, and MsgPack012 as validated for SuppressSourceGeneration = true types, and line 1632 explicitly states that MsgPack011, MsgPack016, and MsgPack017 are not reported.",
+        "citations": [
+          {
+            "path": "README.md",
+            "line": 1625
+          },
+          {
+            "path": "README.md",
+            "line": 1632
+          }
+        ]
+      },
+      "citation_problems": [],
+      "status": "unverified",
+      "releases_lines": false
+    },
+    {
+      "id": "C3",
+      "text": "The analyzer tests assert that suppressed types still get MsgPack004 (missing Key), MsgPack015 (AllowPrivate required), MsgPack003 (member type not serializable) and MsgPack005 (duplicate or mixed keys) at specific locations. This is the test evidence for the requirement. The diff does not show whether the first three cases failed before this change.",
+      "requirement_quote": "The analyzer does not work if SuppressSourceGeneration = true.",
+      "kind": "test",
+      "confidence": "medium",
+      "citations": [
+        {
+          "path": "tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs",
+          "start_line": 20,
+          "end_line": 144
+        }
+      ],
+      "tests": [
+        "MemberWithoutKeyIsReported",
+        "AllowPrivateRequiredIsReported",
+        "MemberTypeMustBeMessagePackObjectIsReported",
+        "DuplicateIntKeysAreReportedWithoutAnalyzerFailure",
+        "DuplicateStringKeysAreReportedWithoutAnalyzerFailure",
+        "MixedKeyKindsAreReportedWithoutAnalyzerFailure"
+      ],
+      "static_checks": [
+        "S7",
+        "S8"
+      ],
+      "method": "test run",
+      "evidence": [
+        "test `MemberWithoutKeyIsReported` passed (1 case)",
+        "test `AllowPrivateRequiredIsReported` passed (1 case)",
+        "test `MemberTypeMustBeMessagePackObjectIsReported` passed (1 case)",
+        "test `DuplicateIntKeysAreReportedWithoutAnalyzerFailure` passed (1 case)",
+        "test `DuplicateStringKeysAreReportedWithoutAnalyzerFailure` passed (1 case)",
+        "test `MixedKeyKindsAreReportedWithoutAnalyzerFailure` passed (1 case)",
+        "static check S7 passed",
+        "static check S8 passed"
+      ],
+      "breaker": {
+        "claim_id": "C3",
+        "verdict": "upheld",
+        "reason": "Checked all six tests in SuppressSourceGenerationAnalyzerTests.cs lines 20-144: each decorates the target class with [MessagePackObject(SuppressSourceGeneration = true)] and asserts the exact diagnostic ID and location span for MsgPack004 (line 27), MsgPack015 (line 42), MsgPack003 (line 69), and MsgPack005 (lines 90-91, 112-113, and 134-135), and the claim accurately notes that the diff does not show whether the first three cases failed prior to this change.",
+        "citations": [
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs",
+            "line": 21
+          },
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs",
+            "line": 39
+          },
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs",
+            "line": 58
+          },
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs",
+            "line": 81
+          }
+        ]
+      },
+      "citation_problems": [],
+      "status": "backed",
+      "releases_lines": true
+    },
+    {
+      "id": "C4",
+      "text": "For a suppressed type, the test expects no diagnostics at all when it has a private keyed field with AllowPrivate, an init-only property and a non-partial class. In other words, it expects MsgPack011, MsgPack016 and MsgPack017 not to be reported.",
+      "requirement_quote": "",
+      "kind": "test",
+      "confidence": "medium",
+      "citations": [
+        {
+          "path": "tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs",
+          "start_line": 168,
+          "end_line": 192
+        }
+      ],
+      "tests": [
+        "SourceGenerationOnlyDiagnosticsAreNotReportedWhenSuppressed"
+      ],
+      "static_checks": [
+        "S4"
+      ],
+      "method": "test run",
+      "evidence": [
+        "test `SourceGenerationOnlyDiagnosticsAreNotReportedWhenSuppressed` passed (1 case)",
+        "static check S4 passed"
+      ],
+      "breaker": {
+        "claim_id": "C4",
+        "verdict": "cannot_tell",
+        "reason": "SourceGenerationOnlyDiagnosticsAreNotReportedWhenSuppressed (SuppressSourceGenerationAnalyzerTests.cs lines 169-192) asserts zero diagnostics on a non-partial suppressed class with AllowPrivate, a private keyed field, and an init-only property with an initializer, but the diff does not show the trigger conditions for MsgPack011, MsgPack016, and MsgPack017 or include a control test without SuppressSourceGeneration = true proving that this Foo declaration actually triggers all three diagnostics when source generation is enabled.",
+        "citations": [
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs",
+            "line": 169
+          }
+        ]
+      },
+      "citation_problems": [],
+      "status": "backed",
+      "releases_lines": false
+    },
+    {
+      "id": "C5",
+      "text": "A suppressed type gets no formatter from GeneratedMessagePackResolver and still serializes and deserializes through the standard dynamic resolver.",
+      "requirement_quote": "",
+      "kind": "test",
+      "confidence": "high",
+      "citations": [
+        {
+          "path": "tests/MessagePack.SourceGenerator.ExecutionTests/SuppressedSourceGenerationTests.cs",
+          "start_line": 8,
+          "end_line": 36
+        }
+      ],
+      "tests": [
+        "NoFormatterIsGeneratedForSuppressedType",
+        "SuppressedTypeRoundTripsThroughDynamicResolver"
+      ],
+      "static_checks": [
+        "S8"
+      ],
+      "method": "static check",
+      "evidence": [
+        "named test `NoFormatterIsGeneratedForSuppressedType` not found in the test run",
+        "named test `SuppressedTypeRoundTripsThroughDynamicResolver` not found in the test run",
+        "static check S8 passed"
+      ],
+      "breaker": {
+        "claim_id": "C5",
+        "verdict": "upheld",
+        "reason": "Checked SuppressedSourceGenerationTests.cs lines 8-36: NoFormatterIsGeneratedForSuppressedType asserts GeneratedMessagePackResolver.Instance.GetFormatter<SuppressedSourceGenerationType>() is null (line 23), and SuppressedTypeRoundTripsThroughDynamicResolver serializes and deserializes an instance with MessagePackSerializerOptions.Standard and verifies both property values round-trip (lines 29-35).",
+        "citations": [
+          {
+            "path": "tests/MessagePack.SourceGenerator.ExecutionTests/SuppressedSourceGenerationTests.cs",
+            "line": 23
+          },
+          {
+            "path": "tests/MessagePack.SourceGenerator.ExecutionTests/SuppressedSourceGenerationTests.cs",
+            "line": 31
+          }
+        ]
+      },
+      "citation_problems": [],
+      "status": "backed",
+      "releases_lines": false
+    }
+  ],
+  "static_checks": [
+    {
+      "id": "S1",
+      "name": "T4 templates and their compiled .cs change together",
+      "result": "n/a",
+      "detail": "no templates changed",
+      "files": []
+    },
+    {
+      "id": "S2",
+      "name": "Generated snapshot files change uniformly",
+      "result": "n/a",
+      "detail": "no generated files changed",
+      "files": []
+    },
+    {
+      "id": "S3",
+      "name": "No new public API in shipped assemblies",
+      "result": "pass",
+      "detail": "no public declarations added in shipped assemblies",
+      "files": []
+    },
+    {
+      "id": "S4",
+      "name": "No new user-visible analyzer rules",
+      "result": "pass",
+      "detail": "no rule descriptors or release notes changed; existing ids mentioned: MsgPack004, MsgPack005, MsgPack015, MsgPack003, MsgPack012, MsgPack011, MsgPack016, MsgPack017",
+      "files": []
+    },
+    {
+      "id": "S5",
+      "name": "Serialized output (wire format) untouched",
+      "result": "pass",
+      "detail": "no reader/writer calls changed in runtime code or formatter templates",
+      "files": []
+    },
+    {
+      "id": "S6",
+      "name": "No changes to untrusted-input handling",
+      "result": "pass",
+      "detail": "no unsafe code or runtime reader code added (source generator code runs at build time on the developer's own code)",
+      "files": []
+    },
+    {
+      "id": "S7",
+      "name": "Existing tests not weakened",
+      "result": "pass",
+      "detail": "no assertions or test cases removed",
+      "files": []
+    },
+    {
+      "id": "S8",
+      "name": "New tests contain an assertion",
+      "result": "pass",
+      "detail": "10 new test(s), each with an assertion or verifier call",
+      "files": []
+    }
+  ],
+  "tests": {
+    "environment_blocked": 0,
+    "project_results": [
+      {
+        "project": "tests/MessagePack.SourceGenerator.ExecutionTests/MessagePack.SourceGenerator.ExecutionTests.csproj",
+        "status": "build failed on base too",
+        "errors": [
+          "SuppressedSourceGenerationTests.cs(23,50): error CS0117: 'GeneratedMessagePackResolver' does not contain a definition for 'Instance'"
+        ],
+        "new_errors": [
+          "SuppressedSourceGenerationTests.cs(23,50): error CS0117: 'GeneratedMessagePackResolver' does not contain a definition for 'Instance'"
+        ]
+      },
+      {
+        "project": "tests/MessagePack.SourceGenerator.Tests/MessagePack.SourceGenerator.Tests.csproj",
+        "status": "tests ran",
+        "errors": [],
+        "new_errors": []
+      }
+    ],
+    "status": "ran",
+    "sdk": "8.0.428",
+    "projects": [
+      "tests/MessagePack.SourceGenerator.ExecutionTests/MessagePack.SourceGenerator.ExecutionTests.csproj",
+      "tests/MessagePack.SourceGenerator.Tests/MessagePack.SourceGenerator.Tests.csproj"
+    ],
+    "passed": 175,
+    "failed": 0,
+    "skipped": 0,
+    "cases": [
+      {
+        "name": "GenerationTests.GenericWithConstraintsThatReferenceTypeParameter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack012InaccessibleDataTypeTests.InaccessibleNestedDataType_OuterNesting",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter(container: NestingClass, usesMapMode: False)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetterWithParameterizedConstructorPartially",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack015AllowPrivateRequiredTests.AddForPublicTypeNestedUnderNonPublicType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "SuppressSourceGenerationAnalyzerTests.DuplicateKeysAreReportedWithoutAnalyzerFailureForGeneratedTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack014NullableRefTypeFormatterTests.RefTypeWithNullableAnnotation",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.Array2DJaggedProperty",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetterWithDefaultValue",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddIgnoreAttributesToMembers",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToType_Properties",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToTypeForRecordPrimaryConstructor",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.NonGenericType_CollidingTypeNames",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterConstructor(initialModifiers: \"private \", expectedModifiers: \"internal \")",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.GenericCustomFormatter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.DeserializingConstructorParameterMemberTypeAssignability_Incompatible",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.PrivateMembersInBaseClassNeedNoAttribution",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.GenericsOfTFormatter_WithKnownTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterConstructor(initialModifiers: \"\", expectedModifiers: \"internal \")",
+        "outcome": "Passed"
+      },
+      {
+        "name": "ImplicitResolverForCustomFormattersTests.MultipleFunctionalCustomFormattersForType_OnlyOneNonExcluded",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack001SpecifyOptionsAnalyzerTests.Invocation_ExplicitlyNull",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.CustomFormatterViaAttributeOnField(usesMapMode: False)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MultipleTypesTests.TwoTypes(usesMapMode: False)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.CustomFormatterViaAttributeOnProperty(usesMapMode: False)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.CustomFormatterWithSingletonPattern",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.Generics_Constraints_Type",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FullModelTests.Equals_Null",
+        "outcome": "Passed"
+      },
+      {
+        "name": "ImplicitResolverForCustomFormattersTests.CustomFormatterWithoutDefaultConstructor_Excluded",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack001SpecifyOptionsAnalyzerTests.InvocationWithOptions_LocalVariable",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.CustomFormatterViaAttributeOnProperty(usesMapMode: True)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers(type: \"record\", version: CSharp9)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.Generics_Constraints_NullableReferenceType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembersOfRecordStructWithPrimaryCtor",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToGenericType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetterWithParameterizedConstructorAndDefaultValue",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterOnlyWithParameterizedConstructorDefaultValue",
+        "outcome": "Passed"
+      },
+      {
+        "name": "UnionSerializationInfoTests.Equals_ByValue",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.DerivedAttributes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack011PartialTypeRequiredTests.NestedPartialTypeRequiresPartialSelfAndDeclaringType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack001SpecifyOptionsAnalyzerTests.Invocation_OmittedOptionalParameter_VB",
+        "outcome": "Passed"
+      },
+      {
+        "name": "SuppressSourceGenerationAnalyzerTests.AllowPrivateRequiredIsReported",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.RecursiveGenerics_Direct",
+        "outcome": "Passed"
+      },
+      {
+        "name": "SuppressSourceGenerationAnalyzerTests.DuplicateIntKeysAreReportedWithoutAnalyzerFailure",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack012InaccessibleDataTypeTests.InaccessibleNestedDataType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_WithNamespace",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.NoFieldWithCustomFormatterCollected",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MessagePackFormatterAttributeTests.CanGenerateMessagePackFormatterAttr",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack014NullableRefTypeFormatterTests.RefTypeWithoutNullableAnnotationsEnabled",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.NestedMessagePackObjects_Array",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetterWithDefaultValueInputPartially",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterType(initialModifiers: \"\", expectedModifiers: \"internal \")",
+        "outcome": "Passed"
+      },
+      {
+        "name": "ImplicitResolverForCustomFormattersTests.CustomFormatterWithoutDefaultConstructor",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembers_MixedVisibility",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.ImplicitFormatterTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterOnlyIgnore",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack002UseConstantOptionsAnalyzerTests.Invocation_WithImmutableStaticOptions",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetterWithParameterizedConstructor",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_NonPartialTypes(type: \"struct\", languageVersion: CSharp7_3)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack015AllowPrivateRequiredTests.SetWhenNonPublicPropertyIsAnnotated",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.SimplifiedNameForKeywordsAndSyntaxSugar",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack001SpecifyOptionsAnalyzerTests.Invocation_OmittedOptionalParameter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MemberSerializationInfoTests.Equals_ByValue",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.NonDefaultDeserializingConstructor_Private",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MultipleTypesTests.ZeroTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.SystemMemoryTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack015AllowPrivateRequiredTests.AddForNonPublicType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack011PartialTypeRequiredTests.CodeFixOffered",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.InterfaceUnionUsedWithNullableRefAnnotation",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.NoGenerationForAnnotationOnly",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack002UseConstantOptionsAnalyzerTests.Invocation_WithMutableStaticOptions",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterOnlyDefaultValue",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.UnionFormatter(container: Namespace)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.GenericType_CollidingTypeNames",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter(container: None, usesMapMode: False)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.EmbeddedTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembers",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.Generics_Constraints_ReferenceType_Nullable",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_NonPartialTypes(type: \"record\", languageVersion: CSharp9)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembersOfRecord",
+        "outcome": "Passed"
+      },
+      {
+        "name": "SuppressSourceGenerationAnalyzerTests.MixedKeyKindsAreReportedWithoutAnalyzerFailure",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterOnlyWithParameterizedConstructor",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.InitPropertyInitializer",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.NestedGenericTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers(type: \"class\", version: CSharp7_3)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.NoPrivateMemberCollected",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack015AllowPrivateRequiredTests.AddForNonPublicDeserializingConstructor",
+        "outcome": "Passed"
+      },
+      {
+        "name": "CompositeResolverGeneratorTests.CompositeResolver_Nested",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembers_PublicOnly",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers(type: \"record struct\", version: CSharp10)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack011PartialTypeRequiredTests.NestedPartialTypeRequiresPartialDeclaringType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.ExcludeFormatterFromSourceGeneratedResolver",
+        "outcome": "Passed"
+      },
+      {
+        "name": "CompositeResolverGeneratorTests.CompositeResolver_MixedResolverTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.GenericsOfTFormatter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterType(initialModifiers: \"protected \", expectedModifiers: \"protected internal \")",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.NoMessagePackReference",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToTypeForRecord1",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.ArrayTypedProperty",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterOnlyMixed",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.CodeFixAppliesAcrossFiles",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.Generics_Constraints_Multiple",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToTypeForRecord2",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.SystemCollectionsObjectModelCollection",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_Nested_NonPartialTypes(type: \"class\", languageVersion: CSharp7_3)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.CustomFormatterViaAttributeOnField(usesMapMode: True)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.GenericType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.AdditionalAllowTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter_CollidingTypeNames",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToType_Nullable",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_NonPartialTypes(type: \"class\", languageVersion: CSharp7_3)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter(container: Namespace, usesMapMode: False)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.NoPrivateAccessNeeded",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.MixType_CollidingTypeNames",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterConstructor(initialModifiers: \"private protected \", expectedModifiers: \"internal \")",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack002UseConstantOptionsAnalyzerTests.Members_BasedOnStaticOptions",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterType(initialModifiers: \"private protected \", expectedModifiers: \"internal \")",
+        "outcome": "Passed"
+      },
+      {
+        "name": "SuppressSourceGenerationAnalyzerTests.SourceGenerationOnlyDiagnosticsAreNotReportedWhenSuppressed",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_MapMode",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.MessageFormatterAttribute",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack002UseConstantOptionsAnalyzerTests.Fields",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_Nested_NonPartialTypes(type: \"record\", languageVersion: CSharp9)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MultipleTypesTests.TwoTypes(usesMapMode: True)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.NestedMessagePackObjects",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.AdditionalFormatterTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.GenericTypeArg",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.GenericsOfTFormatter_FormatterOnly",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToField_WithComment",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToType_Fields",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack002UseConstantOptionsAnalyzerTests.Properties",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack015AllowPrivateRequiredTests.AddWhenNonPublicPropertyIsAnnotated",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter(container: Namespace, usesMapMode: True)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.WellKnownGenericsFormatter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "ImplicitResolverForCustomFormattersTests.OpenGenericFormatter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.InvalidMessageFormatterType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.NullableFormatter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetterWithParameterizedConstructorDoNotUseSetter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.Generics_Defined_In_ReferencedProject",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AbstractFormatterDoesNotAttractAttention",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.DoNotAddAttributesToClassWithPrimaryCtor",
+        "outcome": "Passed"
+      },
+      {
+        "name": "SuppressSourceGenerationAnalyzerTests.MemberTypeMustBeMessagePackObjectIsReported",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.GenericDataTypeWithPrivateMember",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.UnionFormatter(container: None)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack014NullableRefTypeFormatterTests.ValueTypeWithoutNullableAnnotation",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter(container: None, usesMapMode: True)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_Nested_NonPartialTypes(type: \"struct\", languageVersion: CSharp7_3)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.Generics_Constraints_Struct",
+        "outcome": "Passed"
+      },
+      {
+        "name": "CustomStringKeyFormatterTests.RecordWithWithInitOnlyProps",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers(type: \"struct\", version: CSharp7_3)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.NullStringKey",
+        "outcome": "Passed"
+      },
+      {
+        "name": "ImplicitResolverForCustomFormattersTests.MultipleFunctionalCustomFormattersForType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.AdditionalFormatterTypes_RedundantAttribute",
+        "outcome": "Passed"
+      },
+      {
+        "name": "SuppressSourceGenerationAnalyzerTests.MemberWithoutKeyIsReported",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.DerivedAttributes_SourceGenerationDisabled",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembersOfRecordWithPrimaryCtor",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToType_Generic",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.GenericsUnionFormatter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.GenericsOfT1T2Formatter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.GenericsUnionFormatter_Nested",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FullModelTests.Equals_ByValue",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterType(initialModifiers: \"private \", expectedModifiers: \"internal \")",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter(container: NestingClass, usesMapMode: True)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "ImplicitResolverForCustomFormattersTests.MultipleFunctionalCustomFormattersForType_MultiFormatter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "SuppressSourceGenerationAnalyzerTests.DuplicateStringKeysAreReportedWithoutAnalyzerFailure",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.DeserializingConstructorParameterMemberTypeAssignability_MemberAssignsToParamType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack014NullableRefTypeFormatterTests.RefTypeWithoutNullableGetsFixed",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.UnionFormatter(container: NestingClass)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.NameCollisionsInForceMapMode",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack002UseConstantOptionsAnalyzerTests.Invocation_WithImmutableStaticOptions_VB",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.CustomFormatterForGenericWithConstraints",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembersOfRecordStruct",
+        "outcome": "Passed"
+      },
+      {
+        "name": "CustomStringKeyFormatterTests.RecordWithPrimaryConstructor",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.SpecifyFormatterFromStockSet",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterConstructor(initialModifiers: \"protected \", expectedModifiers: \"protected internal \")",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembers_AllowPrivateAttribute",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterOnlyWithParameterizedConstructorPartially",
+        "outcome": "Passed"
+      }
+    ],
+    "durationSec": 78,
+    "logTail": "C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\GeneratedCompositeResolverTests.cs(12,53): error CS0117: 'MyGeneratedCompositeResolver' does not contain a definition for 'Instance' [C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\MessagePack.SourceGenerator.ExecutionTests.csproj]\r\nC:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\GeneratedCompositeResolverTests.cs(13,53): error CS0117: 'MyGeneratedCompositeResolver' does not contain a definition for 'Instance' [C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\MessagePack.SourceGenerator.ExecutionTests.csproj]\r\nC:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\GeneratedCompositeResolverTests.cs(14,53): error CS0117: 'MyGeneratedCompositeResolver' does not contain a definition for 'Instance' [C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\MessagePack.SourceGenerator.ExecutionTests.csproj]\r\nC:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\GeneratedCompositeResolverTests.cs(15,50): error CS0117: 'MyGeneratedCompositeResolver' does not contain a definition for 'Instance' [C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\MessagePack.SourceGenerator.ExecutionTests.csproj]\r\nC:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\SuppressedSourceGenerationTests.cs(23,50): error CS0117: 'GeneratedMessagePackResolver' does not contain a definition for 'Instance' [C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\MessagePack.SourceGenerator.ExecutionTests.csproj]\r\nC:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\GeneratedCompositeResolverTests.cs(12,53): error CS0117: 'MyGeneratedCompositeResolver' does not contain a definition for 'Instance' [C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\MessagePack.SourceGenerator.ExecutionTests.csproj]\r\nC:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\GeneratedCompositeResolverTests.cs(13,53): error CS0117: 'MyGeneratedCompositeResolver' does not contain a definition for 'Instance' [C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\MessagePack.SourceGenerator.ExecutionTests.csproj]\r\nC:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\GeneratedCompositeResolverTests.cs(14,53): error CS0117: 'MyGeneratedCompositeResolver' does not contain a definition for 'Instance' [C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\MessagePack.SourceGenerator.ExecutionTests.csproj]\r\nC:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\GeneratedCompositeResolverTests.cs(15,50): error CS0117: 'MyGeneratedCompositeResolver' does not contain a definition for 'Instance' [C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\MessagePack.SourceGenerator.ExecutionTests.csproj]\r\nC:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\SuppressedSourceGenerationTests.cs(23,50): error CS0117: 'GeneratedMessagePackResolver' does not contain a definition for 'Instance' [C:\\Users\\Jesse\\Projects\\personal\\hackathons\\junction-2026\\tieto-trust-review\\.work\\wt-755cef96b3\\tests\\MessagePack.SourceGenerator.ExecutionTests\\MessagePack.SourceGenerator.ExecutionTests.csproj]\r\nPassed!  - Failed:     0, Passed:   175, Skipped:     0, Total:   175, Duration: 11 s - MessagePack.SourceGenerator.Tests.dll (net8.0)\r"
+  },
+  "refusals": [
+    {
+      "id": "R1",
+      "rule": "honesty",
+      "what": "README section declaring which analyzer rules do and do not apply to SuppressSourceGeneration types (MsgPack011/016/017 excluded).",
+      "why": "This is user-facing documentation of analyzer policy, added beyond the bug fix. A maintainer should confirm this is the intended contract.",
+      "files": [
+        {
+          "path": "README.md"
+        }
+      ],
+      "source": "AI reading"
+    },
+    {
+      "id": "R2",
+      "rule": "contracts",
+      "what": "Source generator behavior on duplicate keys changes from an exception to silently keeping only the first member.",
+      "why": "This may change generated formatter output for invalid inputs rather than failing. A maintainer should confirm a diagnostic always blocks the build in this case.",
+      "files": [
+        {
+          "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs"
+        }
+      ],
+      "source": "AI reading"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "line": 1148,
+      "description": "Claim C1 disputed: While TypeCollector.cs adds continue after reporting DoNotMixStringAndIntKeys in both the property loop (line 1008) and the field loop (line 1148), the sole named test MixedKeyKindsAreReportedWithoutAnalyzerFailure (SuppressSourceGenerationAnalyzerTests.cs lines 125-144) declares only two properties and zero fields, so the claimed field-collection path at lines 1145-1149 is never exercised by the named test (nor is the string-key-then-int-key branch).",
+      "severity": "medium",
+      "source": "breaker (Gemini)"
+    },
+    {
+      "id": "F2",
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "line": 1163,
+      "description": "Claim C2 disputed: All three named tests (SuppressSourceGenerationAnalyzerTests.cs lines 81-100, 103-122, and 147-166) declare only properties and no fields, so none of them test the cited field-collection guards at TypeCollector.cs lines 1163-1166 and 1179-1182; furthermore, the earlier duplicate-key diagnostic reporting for intMembers and fields is outside the diff hunks and unverified for fields.",
+      "severity": "medium",
+      "source": "breaker (Gemini)"
+    },
+    {
+      "id": "F3",
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "line": 1008,
+      "description": "Claim C6 disputed: The claim cites only TypeCollector.cs lines 1008 and 1148 (the mixed-key continue statements), omitting the duplicate-key edits at lines 1023-1026, 1039-1042, 1163-1166, and 1179-1182, and the named test DuplicateKeysAreReportedWithoutAnalyzerFailureForGeneratedTypes (SuppressSourceGenerationAnalyzerTests.cs lines 147-166) uses two [Key(0)] properties (duplicate int keys), exercising lines 1023-1026 and never executing either cited line 1008 or 1148.",
+      "severity": "medium",
+      "source": "breaker (Gemini)"
+    },
+    {
+      "id": "F4",
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "line": 1023,
+      "description": "Duplicate-keyed members are now silently dropped instead of throwing. reportDiagnostic is invoked with ?. so it may be null in some paths. If this code runs in the source generator with no diagnostic sink, a formatter could be generated that omits a member, where the build previously failed loudly. Verify that a diagnostic is always surfaced when this branch is taken.",
+      "severity": "medium",
+      "source": "author (Claude)"
+    },
+    {
+      "id": "F5",
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "line": 1008,
+      "description": "No hunk touches SuppressSourceGeneration handling. The fix only prevents crashes on duplicate or mixed keys, which affect all types. If the 3.1.1 regression was an early return or skip for suppressed types, it may not be fixed. Confirm that MemberWithoutKeyIsReported, AllowPrivateRequiredIsReported and MemberTypeMustBeMessagePackObjectIsReported failed before this change, or that the original repro case was duplicate keys.",
+      "severity": "medium",
+      "source": "author (Claude)"
+    },
+    {
+      "id": "F6",
+      "path": "README.md",
+      "line": 1630,
+      "description": "The README states MsgPack012 (type accessibility) is still reported for suppressed types, but no new test covers MsgPack012 for a suppressed type.",
+      "severity": "low",
+      "source": "author (Claude)"
+    },
+    {
+      "id": "F7",
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "line": 1148,
+      "description": "The new 'continue' skips the rest of the loop body for the mismatched member. That means later per-member processing (formatter attribute lookup, hiddenIntKey increment) no longer runs for it. This only matters on the error path, but it changes what other diagnostics may be reported for that member.",
+      "severity": "low",
+      "source": "author (Claude)"
+    },
+    {
+      "id": "F8",
+      "path": "README.md",
+      "line": 1623,
+      "description": "README.md line 1623 states that for [MessagePackObject(SuppressSourceGeneration = true)], no formatter is generated and the type is serialized at run time by the dynamic resolvers, yet concludes 'so such a type remains AOT-safe.' This contradicts lines 1617-1618 and SuppressedSourceGenerationTests.cs line 23: because no precompiled formatter is generated and DynamicObjectResolver relies on Reflection.Emit at run time, a suppressed type without a manually supplied custom formatter will fail at run time in AOT environments (such as NativeAOT, iOS, or Unity IL2CPP) where dynamic code generation is unsupported.",
+      "severity": "medium",
+      "source": "breaker (Gemini)"
+    },
+    {
+      "id": "F9",
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "line": 1035,
+      "description": "When a property (line 1035) or field (line 1175) has a duplicate string key, TypeCollector does not continue early as it does for mixed keys; it still constructs MemberSerializationInfo and increments hiddenIntKey++ before lines 1039-1042 and 1179-1182 skip adding the member to stringMembers. Because TypeCollector is also invoked by the source generator (reportDiagnostic is nullable), any subsequent valid string-keyed member receives a non-contiguous IntKey (for example 0, 2 for 2 entries in stringMembers) instead of dense 0..Count-1 indices, risking out-of-range indexing or malformed code generation during IDE/build runs on code with duplicate string keys.",
+      "severity": "low",
+      "source": "breaker (Gemini)"
+    },
+    {
+      "id": "F10",
+      "path": "tests/MessagePack.SourceGenerator.ExecutionTests/SuppressedSourceGenerationTests.cs",
+      "line": 23,
+      "description": "New compile error vs base in MessagePack.SourceGenerator.ExecutionTests.csproj (the base has other build errors on this machine, so this may share their cause): SuppressedSourceGenerationTests.cs(23,50): error CS0117: 'GeneratedMessagePackResolver' does not contain a definition for 'Instance'",
+      "severity": "medium",
+      "source": "test run"
+    }
+  ],
+  "out_of_scope": [
+    {
+      "path": "README.md",
+      "description": "New 'Opting out of source generation' documentation section. It describes analyzer policy for suppressed types; this is not needed to fix the bug."
+    },
+    {
+      "path": "tests/MessagePack.SourceGenerator.ExecutionTests/SuppressedSourceGenerationTests.cs",
+      "description": "Run-time round-trip and no-generated-formatter tests. These cover serialization behavior, not the analyzer bug in the requirement."
+    }
+  ],
+  "routing": {
+    "level": "focused read",
+    "reasons": [
+      "2 refusal(s) on honesty/contracts grounds need a human look.",
+      "3 claim(s) disputed by the breaker or by the evidence check.",
+      "Evidence took 125 of 252 changed code lines off the list (C3: tests found passing in the real run, claim upheld by the breaker). 127 stay with the owner."
+    ],
+    "must_read": [
+      {
+        "path": "README.md",
+        "lines": "whole file diff (14 changed lines)",
+        "why": "F8 breaker (Gemini) (L1623); R1 honesty (AI-suggested)",
+        "ranges": [
+          [
+            1620,
+            1633
+          ]
+        ]
+      },
+      {
+        "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+        "lines": "whole file diff (22 changed lines)",
+        "why": "F1 breaker (Gemini) (L1148); F2 breaker (Gemini) (L1163); F3 breaker (Gemini) (L1008); F4 author (Claude) (L1023); F5 author (Claude) (L1008); claim C1 disputed (L1005-1009); claim C1 disputed (L1145-1149); claim C2 disputed (L1023-1026); claim C2 disputed (L1039-1042); claim C2 disputed (L1163-1166); claim C2 disputed (L1179-1182); claim C6 disputed (L1008); claim C6 disputed (L1148); R2 contracts (AI-suggested)",
+        "ranges": [
+          [
+            1008,
+            1008
+          ],
+          [
+            1023,
+            1026
+          ],
+          [
+            1039,
+            1042
+          ],
+          [
+            1148,
+            1148
+          ],
+          [
+            1163,
+            1166
+          ],
+          [
+            1179,
+            1182
+          ]
+        ]
+      },
+      {
+        "path": "tests/MessagePack.SourceGenerator.ExecutionTests/SuppressedSourceGenerationTests.cs",
+        "lines": "L1-37 (37 of 37 changed lines)",
+        "why": "no claim covers these lines; C5 has no passing test behind it; F10 test run",
+        "ranges": [
+          [
+            1,
+            37
+          ]
+        ]
+      },
+      {
+        "path": "tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs",
+        "lines": "L1-19, L145-193 (68 of 193 changed lines)",
+        "why": "no claim covers these lines; C4 passed its tests but the breaker did not uphold it",
+        "ranges": [
+          [
+            1,
+            19
+          ],
+          [
+            145,
+            193
+          ]
+        ]
+      }
+    ],
+    "not_required": [
+      {
+        "what": "changed code line(s) released by evidence",
+        "count": 125,
+        "why": "each is cited by a claim with tests found passing in the real run and upheld by the breaker: C3"
+      }
+    ],
+    "real_files": 4,
+    "total_files": 4,
+    "reading_load": {
+      "must_read_lines": 127,
+      "code_lines": 252,
+      "share": 0.504,
+      "released_lines": 125,
+      "released_by": [
+        {
+          "claim": "C3",
+          "lines": 125
+        }
+      ],
+      "kept": [
+        {
+          "why": "no claim covers the line",
+          "lines": 51
+        },
+        {
+          "why": "cited only by claims without a passing test",
+          "lines": 28
+        },
+        {
+          "why": "passing test, but not upheld by the breaker",
+          "lines": 25
+        },
+        {
+          "why": "refused",
+          "lines": 22
+        },
+        {
+          "why": "named by a finding",
+          "lines": 1
+        }
+      ],
+      "generated_lines": 0,
+      "generated_released": false,
+      "doc_lines": 14,
+      "doc_lines_flagged": 14,
+      "all_lines": 266,
+      "share_of_all": 0.53
+    },
+    "lines": [
+      {
+        "path": "README.md",
+        "kind": "doc",
+        "changed_lines": 14,
+        "must_read": [
+          [
+            1620,
+            1633
+          ]
+        ],
+        "must_read_lines": 14,
+        "released": [],
+        "released_lines": 0
+      },
+      {
+        "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+        "kind": "src",
+        "changed_lines": 22,
+        "must_read": [
+          [
+            1008,
+            1008
+          ],
+          [
+            1023,
+            1026
+          ],
+          [
+            1039,
+            1042
+          ],
+          [
+            1148,
+            1148
+          ],
+          [
+            1163,
+            1166
+          ],
+          [
+            1179,
+            1182
+          ]
+        ],
+        "must_read_lines": 22,
+        "released": [],
+        "released_lines": 0
+      },
+      {
+        "path": "tests/MessagePack.SourceGenerator.ExecutionTests/SuppressedSourceGenerationTests.cs",
+        "kind": "test",
+        "changed_lines": 37,
+        "must_read": [
+          [
+            1,
+            37
+          ]
+        ],
+        "must_read_lines": 37,
+        "released": [],
+        "released_lines": 0
+      },
+      {
+        "path": "tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs",
+        "kind": "test",
+        "changed_lines": 193,
+        "must_read": [
+          [
+            1,
+            19
+          ],
+          [
+            145,
+            193
+          ]
+        ],
+        "must_read_lines": 68,
+        "released": [
+          [
+            20,
+            144
+          ]
+        ],
+        "released_lines": 125
+      }
+    ]
+  },
+  "requirement_coverage": {
+    "sentences": 2,
+    "quoted": 1,
+    "not_quoted": [
+      "This has happened since version 3.1.1."
+    ],
+    "bad_quotes": []
+  },
+  "not_checked": [
+    "Reviewer part missing or failed: tests: test project MessagePack.SourceGenerator.ExecutionTests.csproj: build failed on base too. Effect: claims that rely on tests in that project are not backed and release nothing.",
+    "Test project MessagePack.SourceGenerator.ExecutionTests.csproj: build failed on base too; the change adds 1 new compile error(s), e.g. SuppressedSourceGenerationTests.cs(23,50): error CS0117: 'GeneratedMessagePackResolver' does not contain a definition for 'Instance'.",
+    "A passing test backs a claim only as far as the test goes: the tool checks that the named test ran and passed, not which lines it executed.",
+    "Behaviour on other target frameworks / Unity / NativeAOT was not exercised.",
+    "Performance and allocation impact were not measured."
+  ],
+  "raw": {
+    "author_text": "{\"story\":{\"summary\":\"The agent changed the shared member-collection code in TypeCollector so it no longer crashes on invalid key layouts. For mixed int/string keys, it now reports the diagnostic and skips the member (`continue`). For duplicate int or string keys, it guards each `Dictionary.Add` with `ContainsKey`. It adds analyzer tests for `[MessagePackObject(SuppressSourceGeneration = true)]` types, execution tests showing such a type gets no generated formatter and still round-trips at run time, and a README section describing which diagnostics apply to suppressed types.\",\"why\":\"Issue #2234 says the analyzer stopped reporting diagnostics for SuppressSourceGeneration types in 3.1.1. The visible fix implies the root cause was an exception thrown while collecting members with duplicate or mixed keys, which kills the analyzer. However, nothing in the diff touches SuppressSourceGeneration-specific logic. The reviewer cannot confirm from the diff alone that this is the 3.1.0 → 3.1.1 regression rather than a separate crash.\",\"touches_beyond_requirement\":[\"The TypeCollector changes apply to every [MessagePackObject] type, including ones that do get a generated formatter, not only suppressed types.\",\"A new README section documents analyzer behavior for suppressed types, including which rules are and are not reported.\",\"Execution tests check run-time round-tripping and that no generated formatter exists; this is beyond the analyzer bug.\"],\"confidence_overview\":\"Medium that the crash-avoidance edits are correct for the duplicate and mixed-key cases; the new tests cover these. Low-to-medium that this is the whole fix for the reported regression: the diff shows no change to any SuppressSourceGeneration branch. It is unclear whether tests such as MemberWithoutKeyIsReported would have failed before the change. High that the new tests exist and assert specific diagnostics.\"},\"claims\":[{\"id\":\"C1\",\"text\":\"When a member's key kind (int vs string) differs from the other members, TypeCollector reports DoNotMixStringAndIntKeys and skips that member instead of continuing with a null key. This applies in both member-collection paths (properties and fields).\",\"requirement_quote\":\"The analyzer does not work if SuppressSourceGeneration = true.\",\"kind\":\"behavior\",\"confidence\":\"medium\",\"citations\":[{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"start_line\":1005,\"end_line\":1009},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"start_line\":1145,\"end_line\":1149}],\"tests\":[\"MixedKeyKindsAreReportedWithoutAnalyzerFailure\"],\"static_checks\":[]},{\"id\":\"C2\",\"text\":\"A duplicate int or string key no longer causes Dictionary.Add to throw. The second member with the same key is not added; the existing duplicate-key diagnostic is expected to have been reported earlier.\",\"requirement_quote\":\"The analyzer does not work if SuppressSourceGeneration = true.\",\"kind\":\"behavior\",\"confidence\":\"medium\",\"citations\":[{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"start_line\":1023,\"end_line\":1026},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"start_line\":1039,\"end_line\":1042},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"start_line\":1163,\"end_line\":1166},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"start_line\":1179,\"end_line\":1182}],\"tests\":[\"DuplicateIntKeysAreReportedWithoutAnalyzerFailure\",\"DuplicateStringKeysAreReportedWithoutAnalyzerFailure\",\"DuplicateKeysAreReportedWithoutAnalyzerFailureForGeneratedTypes\"],\"static_checks\":[]},{\"id\":\"C6\",\"text\":\"Scope: the TypeCollector edits are not limited to suppressed types. They change collection for every MessagePackObject type, including generated ones. No public API, rule descriptor or wire-format code is changed.\",\"requirement_quote\":\"\",\"kind\":\"scope\",\"confidence\":\"high\",\"citations\":[{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"start_line\":1008,\"end_line\":1008},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"start_line\":1148,\"end_line\":1148}],\"tests\":[\"DuplicateKeysAreReportedWithoutAnalyzerFailureForGeneratedTypes\"],\"static_checks\":[\"S3\",\"S4\",\"S5\"]},{\"id\":\"C7\",\"text\":\"The README documents that suppressed types are still validated for MsgPack004, MsgPack005, MsgPack015, MsgPack003 and MsgPack012, but not for MsgPack011, MsgPack016 or MsgPack017.\",\"requirement_quote\":\"\",\"kind\":\"docs\",\"confidence\":\"medium\",\"citations\":[{\"path\":\"README.md\",\"start_line\":1620,\"end_line\":1632}],\"tests\":[],\"static_checks\":[]},{\"id\":\"C3\",\"text\":\"The analyzer tests assert that suppressed types still get MsgPack004 (missing Key), MsgPack015 (AllowPrivate required), MsgPack003 (member type not serializable) and MsgPack005 (duplicate or mixed keys) at specific locations. This is the test evidence for the requirement. The diff does not show whether the first three cases failed before this change.\",\"requirement_quote\":\"The analyzer does not work if SuppressSourceGeneration = true.\",\"kind\":\"test\",\"confidence\":\"medium\",\"citations\":[{\"path\":\"tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs\",\"start_line\":20,\"end_line\":144}],\"tests\":[\"MemberWithoutKeyIsReported\",\"AllowPrivateRequiredIsReported\",\"MemberTypeMustBeMessagePackObjectIsReported\",\"DuplicateIntKeysAreReportedWithoutAnalyzerFailure\",\"DuplicateStringKeysAreReportedWithoutAnalyzerFailure\",\"MixedKeyKindsAreReportedWithoutAnalyzerFailure\"],\"static_checks\":[\"S7\",\"S8\"]},{\"id\":\"C4\",\"text\":\"For a suppressed type, the test expects no diagnostics at all when it has a private keyed field with AllowPrivate, an init-only property and a non-partial class. In other words, it expects MsgPack011, MsgPack016 and MsgPack017 not to be reported.\",\"requirement_quote\":\"\",\"kind\":\"test\",\"confidence\":\"medium\",\"citations\":[{\"path\":\"tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs\",\"start_line\":168,\"end_line\":192}],\"tests\":[\"SourceGenerationOnlyDiagnosticsAreNotReportedWhenSuppressed\"],\"static_checks\":[\"S4\"]},{\"id\":\"C5\",\"text\":\"A suppressed type gets no formatter from GeneratedMessagePackResolver and still serializes and deserializes through the standard dynamic resolver.\",\"requirement_quote\":\"\",\"kind\":\"test\",\"confidence\":\"high\",\"citations\":[{\"path\":\"tests/MessagePack.SourceGenerator.ExecutionTests/SuppressedSourceGenerationTests.cs\",\"start_line\":8,\"end_line\":36}],\"tests\":[\"NoFormatterIsGeneratedForSuppressedType\",\"SuppressedTypeRoundTripsThroughDynamicResolver\"],\"static_checks\":[\"S8\"]}],\"concerns\":[{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":1023,\"description\":\"Duplicate-keyed members are now silently dropped instead of throwing. reportDiagnostic is invoked with ?. so it may be null in some paths. If this code runs in the source generator with no diagnostic sink, a formatter could be generated that omits a member, where the build previously failed loudly. Verify that a diagnostic is always surfaced when this branch is taken.\",\"severity\":\"medium\"},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":1008,\"description\":\"No hunk touches SuppressSourceGeneration handling. The fix only prevents crashes on duplicate or mixed keys, which affect all types. If the 3.1.1 regression was an early return or skip for suppressed types, it may not be fixed. Confirm that MemberWithoutKeyIsReported, AllowPrivateRequiredIsReported and MemberTypeMustBeMessagePackObjectIsReported failed before this change, or that the original repro case was duplicate keys.\",\"severity\":\"medium\"},{\"path\":\"README.md\",\"line\":1630,\"description\":\"The README states MsgPack012 (type accessibility) is still reported for suppressed types, but no new test covers MsgPack012 for a suppressed type.\",\"severity\":\"low\"},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":1148,\"description\":\"The new 'continue' skips the rest of the loop body for the mismatched member. That means later per-member processing (formatter attribute lookup, hiddenIntKey increment) no longer runs for it. This only matters on the error path, but it changes what other diagnostics may be reported for that member.\",\"severity\":\"low\"}],\"out_of_scope\":[{\"path\":\"README.md\",\"description\":\"New 'Opting out of source generation' documentation section. It describes analyzer policy for suppressed types; this is not needed to fix the bug.\"},{\"path\":\"tests/MessagePack.SourceGenerator.ExecutionTests/SuppressedSourceGenerationTests.cs\",\"description\":\"Run-time round-trip and no-generated-formatter tests. These cover serialization behavior, not the analyzer bug in the requirement.\"}],\"refusal_candidates\":[{\"rule\":\"honesty\",\"what\":\"README section declaring which analyzer rules do and do not apply to SuppressSourceGeneration types (MsgPack011/016/017 excluded).\",\"why\":\"This is user-facing documentation of analyzer policy, added beyond the bug fix. A maintainer should confirm this is the intended contract.\",\"path\":\"README.md\",\"start_line\":0,\"end_line\":0},{\"rule\":\"contracts\",\"what\":\"Source generator behavior on duplicate keys changes from an exception to silently keeping only the first member.\",\"why\":\"This may change generated formatter output for invalid inputs rather than failing. A maintainer should confirm a diagnostic always blocks the build in this case.\",\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"start_line\":0,\"end_line\":0}]}",
+    "breaker_text": "{\"verdicts\":[{\"claim_id\":\"C1\",\"verdict\":\"disputed\",\"reason\":\"While TypeCollector.cs adds continue after reporting DoNotMixStringAndIntKeys in both the property loop (line 1008) and the field loop (line 1148), the sole named test MixedKeyKindsAreReportedWithoutAnalyzerFailure (SuppressSourceGenerationAnalyzerTests.cs lines 125-144) declares only two properties and zero fields, so the claimed field-collection path at lines 1145-1149 is never exercised by the named test (nor is the string-key-then-int-key branch).\",\"citations\":[{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":1148},{\"path\":\"tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs\",\"line\":125}]},{\"claim_id\":\"C2\",\"verdict\":\"disputed\",\"reason\":\"All three named tests (SuppressSourceGenerationAnalyzerTests.cs lines 81-100, 103-122, and 147-166) declare only properties and no fields, so none of them test the cited field-collection guards at TypeCollector.cs lines 1163-1166 and 1179-1182; furthermore, the earlier duplicate-key diagnostic reporting for intMembers and fields is outside the diff hunks and unverified for fields.\",\"citations\":[{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":1163},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":1179},{\"path\":\"tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs\",\"line\":81},{\"path\":\"tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs\",\"line\":103},{\"path\":\"tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs\",\"line\":147}]},{\"claim_id\":\"C6\",\"verdict\":\"disputed\",\"reason\":\"The claim cites only TypeCollector.cs lines 1008 and 1148 (the mixed-key continue statements), omitting the duplicate-key edits at lines 1023-1026, 1039-1042, 1163-1166, and 1179-1182, and the named test DuplicateKeysAreReportedWithoutAnalyzerFailureForGeneratedTypes (SuppressSourceGenerationAnalyzerTests.cs lines 147-166) uses two [Key(0)] properties (duplicate int keys), exercising lines 1023-1026 and never executing either cited line 1008 or 1148.\",\"citations\":[{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":1008},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":1148},{\"path\":\"tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs\",\"line\":147}]},{\"claim_id\":\"C7\",\"verdict\":\"upheld\",\"reason\":\"Checked README.md lines 1620-1632: lines 1625-1630 explicitly list MsgPack004, MsgPack005, MsgPack015, MsgPack003, and MsgPack012 as validated for SuppressSourceGeneration = true types, and line 1632 explicitly states that MsgPack011, MsgPack016, and MsgPack017 are not reported.\",\"citations\":[{\"path\":\"README.md\",\"line\":1625},{\"path\":\"README.md\",\"line\":1632}]},{\"claim_id\":\"C3\",\"verdict\":\"upheld\",\"reason\":\"Checked all six tests in SuppressSourceGenerationAnalyzerTests.cs lines 20-144: each decorates the target class with [MessagePackObject(SuppressSourceGeneration = true)] and asserts the exact diagnostic ID and location span for MsgPack004 (line 27), MsgPack015 (line 42), MsgPack003 (line 69), and MsgPack005 (lines 90-91, 112-113, and 134-135), and the claim accurately notes that the diff does not show whether the first three cases failed prior to this change.\",\"citations\":[{\"path\":\"tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs\",\"line\":21},{\"path\":\"tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs\",\"line\":39},{\"path\":\"tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs\",\"line\":58},{\"path\":\"tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs\",\"line\":81}]},{\"claim_id\":\"C4\",\"verdict\":\"cannot_tell\",\"reason\":\"SourceGenerationOnlyDiagnosticsAreNotReportedWhenSuppressed (SuppressSourceGenerationAnalyzerTests.cs lines 169-192) asserts zero diagnostics on a non-partial suppressed class with AllowPrivate, a private keyed field, and an init-only property with an initializer, but the diff does not show the trigger conditions for MsgPack011, MsgPack016, and MsgPack017 or include a control test without SuppressSourceGeneration = true proving that this Foo declaration actually triggers all three diagnostics when source generation is enabled.\",\"citations\":[{\"path\":\"tests/MessagePack.SourceGenerator.Tests/SuppressSourceGenerationAnalyzerTests.cs\",\"line\":169}]},{\"claim_id\":\"C5\",\"verdict\":\"upheld\",\"reason\":\"Checked SuppressedSourceGenerationTests.cs lines 8-36: NoFormatterIsGeneratedForSuppressedType asserts GeneratedMessagePackResolver.Instance.GetFormatter<SuppressedSourceGenerationType>() is null (line 23), and SuppressedTypeRoundTripsThroughDynamicResolver serializes and deserializes an instance with MessagePackSerializerOptions.Standard and verifies both property values round-trip (lines 29-35).\",\"citations\":[{\"path\":\"tests/MessagePack.SourceGenerator.ExecutionTests/SuppressedSourceGenerationTests.cs\",\"line\":23},{\"path\":\"tests/MessagePack.SourceGenerator.ExecutionTests/SuppressedSourceGenerationTests.cs\",\"line\":31}]}],\"missed_problems\":[{\"path\":\"README.md\",\"line\":1623,\"description\":\"README.md line 1623 states that for [MessagePackObject(SuppressSourceGeneration = true)], no formatter is generated and the type is serialized at run time by the dynamic resolvers, yet concludes 'so such a type remains AOT-safe.' This contradicts lines 1617-1618 and SuppressedSourceGenerationTests.cs line 23: because no precompiled formatter is generated and DynamicObjectResolver relies on Reflection.Emit at run time, a suppressed type without a manually supplied custom formatter will fail at run time in AOT environments (such as NativeAOT, iOS, or Unity IL2CPP) where dynamic code generation is unsupported.\",\"severity\":\"medium\"},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":1035,\"description\":\"When a property (line 1035) or field (line 1175) has a duplicate string key, TypeCollector does not continue early as it does for mixed keys; it still constructs MemberSerializationInfo and increments hiddenIntKey++ before lines 1039-1042 and 1179-1182 skip adding the member to stringMembers. Because TypeCollector is also invoked by the source generator (reportDiagnostic is nullable), any subsequent valid string-keyed member receives a non-contiguous IntKey (for example 0, 2 for 2 entries in stringMembers) instead of dense 0..Count-1 indices, risking out-of-range indexing or malformed code generation during IDE/build runs on code with duplicate string keys.\",\"severity\":\"low\"}]}"
+  }
+}

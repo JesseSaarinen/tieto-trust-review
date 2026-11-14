@@ -1,0 +1,53 @@
+{
+  "record_type": "owner-signoff/v1",
+  "signed_at": "2026-11-13T22:02:31.244Z",
+  "owner": "Jesse Saarinen (demo)",
+  "decision": "request-changes",
+  "requirement_id": "REQ-2283",
+  "branch": "ju26-issue-2283",
+  "commit": "9df83c38409c8bfad0517aebffe48211eda4a5b4",
+  "pack_id": "619780c71ab1",
+  "routing": "focused read",
+  "checked": {
+    "by_tests": "170 passed / 0 failed (tests/MessagePack.SourceGenerator.Tests/MessagePack.SourceGenerator.Tests.csproj)",
+    "by_static_checks": [
+      "S3 pass",
+      "S4 pass",
+      "S5 pass",
+      "S6 pass",
+      "S7 pass",
+      "S8 pass"
+    ],
+    "by_breaker": "gemini-4-carbon: 6 upheld, 1 disputed, 0 cannot tell",
+    "claims_by_method": {
+      "test run": [
+        "C1",
+        "C3",
+        "C5",
+        "C6"
+      ],
+      "static check": [
+        "C7"
+      ],
+      "AI reading only": [
+        "C4",
+        "C2"
+      ],
+      "not checked": []
+    },
+    "by_owner": [
+      "TypeCollector.cs",
+      "MsgPack004.md"
+    ]
+  },
+  "not_checked": [
+    "Behaviour on other target frameworks / Unity / NativeAOT was not exercised.",
+    "Performance and allocation impact were not measured."
+  ],
+  "refusals_acknowledged": [
+    "R1",
+    "R2"
+  ],
+  "residual_risk_accepted": "Demo record, not a real approval.",
+  "note": "Demo of the sign-off flow; F1 (third crash site) needs an answer before accept."
+}

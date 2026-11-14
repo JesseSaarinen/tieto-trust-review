@@ -1,0 +1,1580 @@
+{
+  "meta": {
+    "requirement_id": "REQ-2283",
+    "branch": "seeded-10",
+    "base": "32258fdbee4bcd653c79f51b4376b5103c6f4d27",
+    "commit": "54089b73d36339f6734d279a869c9277c9f29ab2",
+    "generated_at": "2026-11-14T02:47:36.718Z",
+    "author_model": "claude-opus-5-5",
+    "breaker_model": "gemini-4-carbon",
+    "prompt_version": "v1",
+    "options": {
+      "tests": true,
+      "breaker": true
+    },
+    "missing": [],
+    "usage": {
+      "author": null,
+      "breaker": null
+    },
+    "cost_usd": {
+      "author": 0,
+      "breaker": 0,
+      "total": 0
+    },
+    "seconds": {
+      "author": null,
+      "breaker": null,
+      "tests": 43,
+      "tests_cached": true,
+      "total": 0
+    },
+    "regraded_from": {
+      "pack_id": "759f363a961a",
+      "file": "seeded-10.run1.json",
+      "layers": "full"
+    },
+    "pack_id": "8c5162889fda"
+  },
+  "requirement": "# REQ-2283: Generator and analyzer crash with IndexOutOfRangeException on a closed generic struct from a referenced assembly\n\nSource: https://github.com/MessagePack-CSharp/MessagePack-CSharp/issues/2283\n\n#### Bug description\n\nBoth `MessagePackGenerator` (CS8785) and `MsgPack00xMessagePackAnalyzer` (AD0001) throw `IndexOutOfRangeException` when a `[MessagePackObject]` type has a member whose type is a **closed generic value type defined in a referenced assembly**.\n\nBecause the generator then \"will not contribute to the output\", the compiling assembly silently ends up with **no generated resolver at all**. It is only a warning, so a normal build looks fine, but trimmed and NativeAOT apps fail at runtime. In our case three assemblies of a large app had been shipping without a resolver across two releases before we noticed.\n\n#### Repro steps\n\nTwo projects. `lib`:\n\n```csharp\nusing MessagePack;\nnamespace Lib;\n\n[MessagePackObject]\npublic partial record struct Item<T>([property: Key(0)] string Key);\n```\n\n`app`, with a `ProjectReference` to `lib`:\n\n```csharp\nusing MessagePack; using Lib;\nnamespace App;\n\n[MessagePackObject]\npublic sealed partial record Cmd([property: Key(0)] string Scope)\n{\n    [Key(1)] public Item<int> Member { get; init; }\n}\n```\n\nThen `dotnet build` on `app`. Both projects are in the attached `mp-repro.zip`.\n\n#### Expected behavior\n\nA clean build, with a generated resolver in `app`.\n#### Actual behavior\n\n```\nCSC : warning CS8785: Generator 'MessagePackGenerator' failed to generate source. It will not\ncontribute to the output and compilation errors may occur as a result. Exception was of type\n'IndexOutOfRangeException' with message 'Index was outside the bounds of the array.'.\nCSC : warning AD0001: Analyzer 'MessagePack.SourceGenerator.Analyzers.MsgPack00xMessagePackAnalyzer'\nthrew an exception of type 'System.IndexOutOfRangeException' with message 'Index was outside the\nbounds of the array.'.\n```\n\n`app.dll` contains no `GeneratedMessagePackResolver`.\n\n- Version used: MessagePack 3.1.8\n- Runtime: .NET 10 (SDK 10.0.204), Windows 11\n\n#### Additional context\n\n**What triggers it.** `Item` is declared in `lib`, `Cmd` in `app`:\n\n| `Item` declared as | result |\n|---|---|\n| `record struct Item<T>` | **crash** |\n| `struct Item<T>` | **crash** |\n| `struct Item` | ok |\n| `record struct Item` | ok |\n| `class Item<T>` | ok |\n| `record class Item<T>` | ok |\n\nSo it needs all three of: **generic**, **value type**, **from a referenced assembly**. Moving the identical `Item<T>` declaration into `app` itself makes the crash disappear, which is what makes this specific to metadata symbols.\n**Stack trace.**\n\n```\nSystem.IndexOutOfRangeException: Index was outside the bounds of the array.\n   at TypeCollector.GetObjectInfo(INamedTypeSymbol formattedType, ISymbol callerSymbol)\n   at TypeCollector.CollectGeneric(INamedTypeSymbol type, ISymbol callerSymbol) in TypeCollector.cs:line 661\n   at TypeCollector.CollectCore(ITypeSymbol typeSymbol, ISymbol callerSymbol) in TypeCollector.cs:line 371\n   at TypeCollector.GetObjectInfo(INamedTypeSymbol formattedType, ISymbol callerSymbol) in TypeCollector.cs:line 1062\n   at TypeCollector.CollectCore(ITypeSymbol typeSymbol, ISymbol callerSymbol) in TypeCollector.cs:line 386\n   at TypeCollector.Collect() in TypeCollector.cs:line 300\n   at MsgPack00xMessagePackAnalyzer.AnalyzeSymbol(SymbolAnalysisContext, ReferenceSymbols, AnalyzerOptions) in MsgPack00xMessagePackAnalyzer.cs:line 431\n```\n\n`CollectGeneric` line 661 is the closed-generic branch that calls `GetObjectInfo` directly:\n\n```csharp\nelse\n{\n    // NOTE: ... closed generic types such as `Foo<string>` are not registered as a formatter.\n    this.GetObjectInfo(type, callerSymbol);\n```\n\nso `GetObjectInfo` runs against a type that has no syntax. Several diagnostic paths inside it index `DeclaringSyntaxReferences[0]` directly (lines 735, 1009, 1101) instead of using `FirstOrDefault()` the way the neighbouring `GetIdentifierLocation` / `GetLocation` / `GetParameterListLocation` helpers already do, and that collection is empty for a metadata symbol. I did not narrow down which of the three fires.\n\n**Getting the stack trace.** Console output truncates the exception to its message; `-p:ErrorLog=out.sarif` preserves the full description, including the stack trace and an `ISymbol:` context line naming the offending type:\n\n```\ndotnet build -p:ErrorLog=out.sarif\n```\n\n**Workaround.** Putting `[MessagePackFormatter(typeof(ItemFormatter<>))]` on the generic value type short-circuits `CollectCore` (line 356) before `GetObjectInfo` is reached, at the cost of hand-writing the formatter.\n\n**Possibly related:** #2092 reports CS8785 from the v3 generator, but with a different inner exception and no repro.\n\n[mp-repro.zip](https://github.com/user-attachments/files/30408133/mp-repro.zip)\n",
+  "files": [
+    {
+      "path": "README.md",
+      "status": "M",
+      "added": 5,
+      "removed": 0,
+      "kind": "doc",
+      "area": "README.md"
+    },
+    {
+      "path": "doc/analyzers/MsgPack004.md",
+      "status": "M",
+      "added": 5,
+      "removed": 0,
+      "kind": "doc",
+      "area": "doc"
+    },
+    {
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "status": "M",
+      "added": 26,
+      "removed": 3,
+      "kind": "src",
+      "area": "src/MessagePack.SourceGenerator/CodeAnalysis"
+    },
+    {
+      "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+      "status": "M",
+      "added": 189,
+      "removed": 0,
+      "kind": "test",
+      "area": "tests/MessagePack.SourceGenerator.Tests"
+    }
+  ],
+  "story": {
+    "summary": "Stops the generator and analyzer from crashing on closed generic structs that come from a referenced assembly. Two places that read `DeclaringSyntaxReferences[0]` now tolerate an empty list. Every diagnostic the analyzer reports now passes through a new filter, `ReportIfLocatedInCompilation`, which drops any diagnostic whose location is not in a source tree of the current compilation. Three tests compile a library to metadata and check that the consuming project builds without warnings and gets its resolver. Two doc sections are added.",
+    "why": "Issue #2283: for metadata types `DeclaringSyntaxReferences` is empty, so indexing `[0]` threw `IndexOutOfRangeException`. The generator then produced no resolver at all.",
+    "touches_beyond_requirement": [
+      "A global filter on all analyzer diagnostics: any diagnostic with no in-compilation source location is now silently dropped, not just ones caused by metadata types.",
+      "`GetPropertyIdentifierLocation` uses `as` instead of a hard cast, which changes behavior for non-`PropertyDeclarationSyntax` declarations in source.",
+      "README and doc/analyzers/MsgPack004.md text, and the two docs contradict each other."
+    ],
+    "confidence_overview": "High that the two edited index sites no longer throw. Medium that the crash is fully fixed: the issue names three indexing sites and only two are visibly changed. Medium on whether the tests cover the analyzer as well as the generator. Low on the docs: MsgPack004.md describes behavior the code does not have."
+  },
+  "claims": [
+    {
+      "id": "C1",
+      "text": "The BothStringAndIntKeyAreNull diagnostic no longer indexes `DeclaringSyntaxReferences[0]`. It uses a `FirstOrDefault`-based helper that returns null for metadata properties.",
+      "requirement_quote": "Several diagnostic paths inside it index `DeclaringSyntaxReferences[0]` directly (lines 735, 1009, 1101) instead of using `FirstOrDefault()`",
+      "kind": "behavior",
+      "confidence": "high",
+      "citations": [
+        {
+          "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+          "start_line": 985,
+          "end_line": 985
+        },
+        {
+          "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+          "start_line": 1434,
+          "end_line": 1434
+        }
+      ],
+      "tests": [
+        "ClosedGenericStruct_FromMetadataReference",
+        "ClosedGenericRecordStruct_FromMetadataReference"
+      ],
+      "static_checks": [],
+      "method": "test run",
+      "evidence": [
+        "test `ClosedGenericStruct_FromMetadataReference` passed (2 cases)",
+        "test `ClosedGenericRecordStruct_FromMetadataReference` passed (1 case)"
+      ],
+      "breaker": {
+        "claim_id": "C1",
+        "verdict": "disputed",
+        "reason": "Neither named test exercises BothStringAndIntKeyAreNull (TypeCollector.cs:983-986) or GetPropertyIdentifierLocation (TypeCollector.cs:1434), because every Key attribute in ClosedGenericStruct_FromMetadataReference (GenericsFormatterTests.cs:517) and ClosedGenericRecordStruct_FromMetadataReference (GenericsFormatterTests.cs:559) uses integer key 0 (intKey != null). Also, the quoted requirement identifies three DeclaringSyntaxReferences[0] sites in GetObjectInfo (lines 735, 1009, 1101 in v3.1.8, corresponding to ~711, 985, 1077 with the 24-line offset), and the diff updates only two of them.",
+        "citations": [
+          {
+            "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+            "line": 985
+          },
+          {
+            "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+            "line": 1434
+          },
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+            "line": 517
+          },
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+            "line": 559
+          }
+        ]
+      },
+      "citation_problems": [],
+      "status": "disputed",
+      "releases_lines": false
+    },
+    {
+      "id": "C2",
+      "text": "The MemberNeedsKey diagnostic uses `FirstOrDefault()?` instead of `[0]`, so an unkeyed public member of a metadata type no longer throws.",
+      "requirement_quote": "that collection is empty for a metadata symbol",
+      "kind": "behavior",
+      "confidence": "high",
+      "citations": [
+        {
+          "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+          "start_line": 1077,
+          "end_line": 1077
+        }
+      ],
+      "tests": [
+        "ClosedGenericStruct_FromMetadataReference_UnkeyedMember"
+      ],
+      "static_checks": [],
+      "method": "test run",
+      "evidence": [
+        "test `ClosedGenericStruct_FromMetadataReference_UnkeyedMember` passed (1 case)"
+      ],
+      "breaker": {
+        "claim_id": "C2",
+        "verdict": "upheld",
+        "reason": "Checked TypeCollector.cs:1077, which replaces DeclaringSyntaxReferences[0] with DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetLocation(), yielding null (Location.None) instead of throwing on metadata symbols. Checked ClosedGenericStruct_FromMetadataReference_UnkeyedMember (GenericsFormatterTests.cs:590-626), which compiles a generic struct with an unattributed public int Unkeyed property (line 603) into a metadata image and consumes MyGenericStruct<int>, exercising MemberNeedsKey on a metadata member.",
+        "citations": [
+          {
+            "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+            "line": 1077
+          },
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+            "line": 603
+          }
+        ]
+      },
+      "citation_problems": [],
+      "status": "backed",
+      "releases_lines": true
+    },
+    {
+      "id": "C3",
+      "text": "Analyzer diagnostics are now reported only when their location is in a source tree of the current compilation. Diagnostics about metadata members are therefore dropped in the consuming project.",
+      "requirement_quote": "A clean build, with a generated resolver in `app`.",
+      "kind": "behavior",
+      "confidence": "high",
+      "citations": [
+        {
+          "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+          "start_line": 239,
+          "end_line": 239
+        },
+        {
+          "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+          "start_line": 1444,
+          "end_line": 1450
+        }
+      ],
+      "tests": [
+        "ClosedGenericStruct_FromMetadataReference_UnkeyedMember"
+      ],
+      "static_checks": [],
+      "method": "test run",
+      "evidence": [
+        "test `ClosedGenericStruct_FromMetadataReference_UnkeyedMember` passed (1 case)"
+      ],
+      "breaker": {
+        "claim_id": "C3",
+        "verdict": "cannot_tell",
+        "reason": "TypeCollector.cs:239 and 1444-1450 filter diagnostics passed to this.reportDiagnostic by diagnostic.Location.IsInSource && this.compilation.ContainsSyntaxTree(diagnostic.Location.SourceTree), which drops Location.None diagnostics such as MemberNeedsKey on metadata members. However, the diff does not show MsgPack00xMessagePackAnalyzer.cs, the unseen parts of TypeCollector.cs (where GetObjectInfo takes ISymbol callerSymbol, which can be in the consuming compilation), or CSharpSourceGeneratorVerifier (GenericsFormatterTests.cs:7, 638), so the diff alone cannot confirm whether all metadata-member diagnostics are dropped or whether the named test runs the analyzer.",
+        "citations": [
+          {
+            "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+            "line": 239
+          },
+          {
+            "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+            "line": 1446
+          },
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+            "line": 638
+          }
+        ]
+      },
+      "citation_problems": [],
+      "status": "backed",
+      "releases_lines": false
+    },
+    {
+      "id": "C4",
+      "text": "The tests compile the defining source into a real metadata-only image, so the referenced types have no syntax, matching the bug's trigger.",
+      "requirement_quote": "So it needs all three of: **generic**, **value type**, **from a referenced assembly**.",
+      "kind": "test",
+      "confidence": "high",
+      "citations": [
+        {
+          "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+          "start_line": 661,
+          "end_line": 674
+        },
+        {
+          "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+          "start_line": 647,
+          "end_line": 647
+        }
+      ],
+      "tests": [
+        "ClosedGenericStruct_FromMetadataReference",
+        "ClosedGenericRecordStruct_FromMetadataReference",
+        "ClosedGenericStruct_FromMetadataReference_UnkeyedMember"
+      ],
+      "static_checks": [
+        "S8"
+      ],
+      "method": "test run",
+      "evidence": [
+        "test `ClosedGenericStruct_FromMetadataReference` passed (2 cases)",
+        "test `ClosedGenericRecordStruct_FromMetadataReference` passed (1 case)",
+        "test `ClosedGenericStruct_FromMetadataReference_UnkeyedMember` passed (1 case)",
+        "static check S8 passed"
+      ],
+      "breaker": {
+        "claim_id": "C4",
+        "verdict": "upheld",
+        "reason": "Checked CompileToMetadataReferenceAsync (GenericsFormatterTests.cs:661-674), which emits the defining compilation to a MemoryStream and calls MetadataReference.CreateFromImage(stream.ToArray()) (line 673), creating PE metadata symbols with empty DeclaringSyntaxReferences, and adds that reference to both test runs (lines 647 and 652) for generic struct and record struct types.",
+        "citations": [
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+            "line": 647
+          },
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+            "line": 673
+          }
+        ]
+      },
+      "citation_problems": [],
+      "status": "backed",
+      "releases_lines": true
+    },
+    {
+      "id": "C5",
+      "text": "The tests assert that the generator run reports no warning-or-higher diagnostics and that the expected resolver hint name is generated. One test reproduces the issue's exact record-struct repro.",
+      "requirement_quote": "`app.dll` contains no `GeneratedMessagePackResolver`.",
+      "kind": "test",
+      "confidence": "medium",
+      "citations": [
+        {
+          "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+          "start_line": 553,
+          "end_line": 579
+        },
+        {
+          "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+          "start_line": 651,
+          "end_line": 658
+        }
+      ],
+      "tests": [
+        "ClosedGenericRecordStruct_FromMetadataReference"
+      ],
+      "static_checks": [
+        "S8"
+      ],
+      "method": "test run",
+      "evidence": [
+        "test `ClosedGenericRecordStruct_FromMetadataReference` passed (1 case)",
+        "static check S8 passed"
+      ],
+      "breaker": {
+        "claim_id": "C5",
+        "verdict": "upheld",
+        "reason": "Checked RunWithMetadataReferenceAsync (GenericsFormatterTests.cs:653-658), which runs MessagePackGenerator via CSharpGeneratorDriver, asserts no diagnostics of Warning severity or higher (catching CS8785), and asserts expectedResolverHintName is in GeneratedSources. Checked ClosedGenericRecordStruct_FromMetadataReference (lines 553-579), which reproduces Lib.Item<T> and App.Cmd from REQ-2283 with AppResolver added to verify resolver generation.",
+        "citations": [
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+            "line": 559
+          },
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+            "line": 656
+          },
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+            "line": 658
+          }
+        ]
+      },
+      "citation_problems": [],
+      "status": "backed",
+      "releases_lines": true
+    },
+    {
+      "id": "C6",
+      "text": "The analyzer (AD0001) path is exercised through `VerifyCS.Test`. The diff does not show whether this source-generator verifier actually runs `MsgPack00xMessagePackAnalyzer`.",
+      "requirement_quote": "Both `MessagePackGenerator` (CS8785) and `MsgPack00xMessagePackAnalyzer` (AD0001) throw",
+      "kind": "test",
+      "confidence": "low",
+      "citations": [
+        {
+          "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+          "start_line": 637,
+          "end_line": 648
+        }
+      ],
+      "tests": [
+        "ClosedGenericStruct_FromMetadataReference",
+        "ClosedGenericRecordStruct_FromMetadataReference",
+        "ClosedGenericStruct_FromMetadataReference_UnkeyedMember"
+      ],
+      "static_checks": [],
+      "method": "test run",
+      "evidence": [
+        "test `ClosedGenericStruct_FromMetadataReference` passed (2 cases)",
+        "test `ClosedGenericRecordStruct_FromMetadataReference` passed (1 case)",
+        "test `ClosedGenericStruct_FromMetadataReference_UnkeyedMember` passed (1 case)"
+      ],
+      "breaker": {
+        "claim_id": "C6",
+        "verdict": "cannot_tell",
+        "reason": "RunWithMetadataReferenceAsync (GenericsFormatterTests.cs:638-648) uses VerifyCS.Test, aliased to CSharpSourceGeneratorVerifier<MessagePack.SourceGenerator.MessagePackGenerator> (line 7), while lines 653-655 run only CSharpGeneratorDriver. Because CSharpSourceGeneratorVerifier is not shown in the diff and Roslyn's base source-generator test harness does not attach DiagnosticAnalyzers unless overridden, the diff alone does not show whether MsgPack00xMessagePackAnalyzer (AD0001) runs.",
+        "citations": [
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+            "line": 7
+          },
+          {
+            "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+            "line": 638
+          }
+        ]
+      },
+      "citation_problems": [],
+      "status": "backed",
+      "releases_lines": false
+    },
+    {
+      "id": "C7",
+      "text": "Scope: no public API, wire format or analyzer rule descriptors changed. The docs and the global diagnostic filter go beyond a minimal crash fix.",
+      "requirement_quote": "",
+      "kind": "scope",
+      "confidence": "high",
+      "citations": [
+        {
+          "path": "README.md",
+          "start_line": 1639,
+          "end_line": 1642
+        },
+        {
+          "path": "doc/analyzers/MsgPack004.md",
+          "start_line": 49,
+          "end_line": 52
+        }
+      ],
+      "tests": [],
+      "static_checks": [
+        "S3",
+        "S4",
+        "S5",
+        "S7"
+      ],
+      "method": "static check",
+      "evidence": [
+        "static check S3 passed",
+        "static check S4 passed",
+        "static check S5 passed",
+        "static check S7 passed"
+      ],
+      "breaker": {
+        "claim_id": "C7",
+        "verdict": "upheld",
+        "reason": "Checked all four changed files: only private members in TypeCollector.cs were modified or added, leaving public APIs, wire format, and analyzer rule descriptors untouched, while README.md:1639-1642, doc/analyzers/MsgPack004.md:49-52, and the ReportIfLocatedInCompilation filter (TypeCollector.cs:239, 1444-1450) go beyond replacing [0] with FirstOrDefault().",
+        "citations": [
+          {
+            "path": "README.md",
+            "line": 1639
+          },
+          {
+            "path": "doc/analyzers/MsgPack004.md",
+            "line": 49
+          },
+          {
+            "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+            "line": 239
+          }
+        ]
+      },
+      "citation_problems": [],
+      "status": "backed",
+      "releases_lines": false
+    }
+  ],
+  "static_checks": [
+    {
+      "id": "S1",
+      "name": "T4 templates and their compiled .cs change together",
+      "result": "n/a",
+      "detail": "no templates changed",
+      "files": []
+    },
+    {
+      "id": "S2",
+      "name": "Generated snapshot files change uniformly",
+      "result": "n/a",
+      "detail": "no generated files changed",
+      "files": []
+    },
+    {
+      "id": "S3",
+      "name": "No new public API in shipped assemblies",
+      "result": "pass",
+      "detail": "no public declarations added in shipped assemblies",
+      "files": []
+    },
+    {
+      "id": "S4",
+      "name": "No new user-visible analyzer rules",
+      "result": "pass",
+      "detail": "no rule descriptors or release notes changed",
+      "files": []
+    },
+    {
+      "id": "S5",
+      "name": "Serialized output (wire format) untouched",
+      "result": "pass",
+      "detail": "no reader/writer calls changed in runtime code or formatter templates",
+      "files": []
+    },
+    {
+      "id": "S6",
+      "name": "No changes to untrusted-input handling",
+      "result": "pass",
+      "detail": "no unsafe code or runtime reader code added (source generator code runs at build time on the developer's own code)",
+      "files": []
+    },
+    {
+      "id": "S7",
+      "name": "Existing tests not weakened",
+      "result": "pass",
+      "detail": "no assertions or test cases removed",
+      "files": []
+    },
+    {
+      "id": "S8",
+      "name": "New tests contain an assertion",
+      "result": "pass",
+      "detail": "3 new test(s), each with an assertion or verifier call",
+      "files": []
+    }
+  ],
+  "tests": {
+    "environment_blocked": 0,
+    "project_results": [
+      {
+        "project": "tests/MessagePack.SourceGenerator.Tests/MessagePack.SourceGenerator.Tests.csproj",
+        "status": "tests ran",
+        "errors": [],
+        "new_errors": []
+      }
+    ],
+    "status": "ran",
+    "sdk": "8.0.428",
+    "projects": [
+      "tests/MessagePack.SourceGenerator.Tests/MessagePack.SourceGenerator.Tests.csproj"
+    ],
+    "passed": 170,
+    "failed": 0,
+    "skipped": 0,
+    "cases": [
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterConstructor(initialModifiers: \"private protected \", expectedModifiers: \"internal \")",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterType(initialModifiers: \"\", expectedModifiers: \"internal \")",
+        "outcome": "Passed"
+      },
+      {
+        "name": "ImplicitResolverForCustomFormattersTests.MultipleFunctionalCustomFormattersForType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.InitPropertyInitializer",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterOnlyWithParameterizedConstructorDefaultValue",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.MixType_CollidingTypeNames",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.GenericType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack011PartialTypeRequiredTests.NestedPartialTypeRequiresPartialSelfAndDeclaringType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetterWithParameterizedConstructorPartially",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack001SpecifyOptionsAnalyzerTests.Invocation_ExplicitlyNull",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FullModelTests.Equals_Null",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MessagePackFormatterAttributeTests.CanGenerateMessagePackFormatterAttr",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_NonPartialTypes(type: \"struct\", languageVersion: CSharp7_3)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack002UseConstantOptionsAnalyzerTests.Fields",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.NameCollisionsInForceMapMode",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.Generics_Constraints_Type",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterOnlyWithParameterizedConstructor",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.DerivedAttributes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToField_WithComment",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack015AllowPrivateRequiredTests.AddWhenNonPublicPropertyIsAnnotated",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MultipleTypesTests.TwoTypes(usesMapMode: False)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack001SpecifyOptionsAnalyzerTests.InvocationWithOptions_LocalVariable",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterOnlyIgnore",
+        "outcome": "Passed"
+      },
+      {
+        "name": "ImplicitResolverForCustomFormattersTests.MultipleFunctionalCustomFormattersForType_OnlyOneNonExcluded",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.InterfaceUnionUsedWithNullableRefAnnotation",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack001SpecifyOptionsAnalyzerTests.Invocation_OmittedOptionalParameter_VB",
+        "outcome": "Passed"
+      },
+      {
+        "name": "CustomStringKeyFormatterTests.RecordWithWithInitOnlyProps",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetterWithParameterizedConstructorAndDefaultValue",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.CodeFixAppliesAcrossFiles",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.ClosedGenericStruct_FromMetadataReference",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetterWithParameterizedConstructor",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.Generics_Constraints_ReferenceType_Nullable",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FullModelTests.Equals_ByValue",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembers_MixedVisibility",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack002UseConstantOptionsAnalyzerTests.Properties",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.GenericsOfTFormatter_WithKnownTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddIgnoreAttributesToMembers",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.UnionFormatter(container: NestingClass)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack015AllowPrivateRequiredTests.AddForNonPublicDeserializingConstructor",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.Generics_Constraints_Multiple",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_Nested_NonPartialTypes(type: \"record\", languageVersion: CSharp9)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "UnionSerializationInfoTests.Equals_ByValue",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.SystemMemoryTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.NoMessagePackReference",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.GenericType_CollidingTypeNames",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.GenericTypeArg",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.ImplicitFormatterTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack014NullableRefTypeFormatterTests.RefTypeWithoutNullableAnnotationsEnabled",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.NestedMessagePackObjects_Array",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.NoFieldWithCustomFormatterCollected",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembersOfRecordStructWithPrimaryCtor",
+        "outcome": "Passed"
+      },
+      {
+        "name": "CustomStringKeyFormatterTests.RecordWithPrimaryConstructor",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter_CollidingTypeNames",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack001SpecifyOptionsAnalyzerTests.Invocation_OmittedOptionalParameter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.NonGenericType_CollidingTypeNames",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack015AllowPrivateRequiredTests.AddForNonPublicType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.AdditionalFormatterTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.WellKnownGenericsFormatter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack015AllowPrivateRequiredTests.SetWhenNonPublicPropertyIsAnnotated",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter(container: None, usesMapMode: True)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembersOfRecordStruct",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack015AllowPrivateRequiredTests.AddForPublicTypeNestedUnderNonPublicType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.MessageFormatterAttribute",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack014NullableRefTypeFormatterTests.RefTypeWithoutNullableGetsFixed",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.ClosedGenericRecordStruct_FromMetadataReference",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembers",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.Array2DJaggedProperty",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack011PartialTypeRequiredTests.CodeFixOffered",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToTypeForRecord1",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.DerivedAttributes_SourceGenerationDisabled",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.AdditionalFormatterTypes_RedundantAttribute",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.Generics_Constraints_Struct",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterOnlyWithParameterizedConstructorPartially",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.NonDefaultDeserializingConstructor_Private",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter(container: NestingClass, usesMapMode: True)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToTypeForRecord2",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.NestedGenericTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.AdditionalAllowTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.DeserializingConstructorParameterMemberTypeAssignability_Incompatible",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_Nested_NonPartialTypes(type: \"struct\", languageVersion: CSharp7_3)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.ClosedGenericStruct_FromMetadataReference_UnkeyedMember",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToType_Nullable",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.GenericsUnionFormatter_Nested",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_NonPartialTypes(type: \"class\", languageVersion: CSharp7_3)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.NestedMessagePackObjects",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers(type: \"record struct\", version: CSharp10)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.NoPrivateMemberCollected",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.CustomFormatterViaAttributeOnField(usesMapMode: True)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.DeserializingConstructorParameterMemberTypeAssignability_MemberAssignsToParamType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_MapMode",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterType(initialModifiers: \"private protected \", expectedModifiers: \"internal \")",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToType_Generic",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToType_Properties",
+        "outcome": "Passed"
+      },
+      {
+        "name": "ImplicitResolverForCustomFormattersTests.OpenGenericFormatter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.GenericsOfTFormatter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterConstructor(initialModifiers: \"protected \", expectedModifiers: \"protected internal \")",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MultipleTypesTests.TwoTypes(usesMapMode: True)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter(container: Namespace, usesMapMode: False)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.CustomFormatterViaAttributeOnProperty(usesMapMode: True)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_NonPartialTypes(type: \"record\", languageVersion: CSharp9)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetterWithParameterizedConstructorDoNotUseSetter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MemberSerializationInfoTests.Equals_ByValue",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.CustomFormatterForGenericWithConstraints",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack002UseConstantOptionsAnalyzerTests.Invocation_WithImmutableStaticOptions_VB",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers(type: \"record\", version: CSharp9)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.CustomFormatterViaAttributeOnProperty(usesMapMode: False)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.GenericDataTypeWithPrivateMember",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.GenericsUnionFormatter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.Generics_Constraints_NullableReferenceType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.RecursiveGenerics_Direct",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.ArrayTypedProperty",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.NoGenerationForAnnotationOnly",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack014NullableRefTypeFormatterTests.RefTypeWithNullableAnnotation",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetterWithDefaultValue",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter(container: None, usesMapMode: False)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack002UseConstantOptionsAnalyzerTests.Members_BasedOnStaticOptions",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToGenericType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterType(initialModifiers: \"protected \", expectedModifiers: \"protected internal \")",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembersOfRecordWithPrimaryCtor",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToType_Fields",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter(container: Namespace, usesMapMode: True)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.ExcludeFormatterFromSourceGeneratedResolver",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembers_PublicOnly",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.DoNotAddAttributesToClassWithPrimaryCtor",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack014NullableRefTypeFormatterTests.ValueTypeWithoutNullableAnnotation",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.NoPrivateAccessNeeded",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.CustomFormatterViaAttributeOnField(usesMapMode: False)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AbstractFormatterDoesNotAttractAttention",
+        "outcome": "Passed"
+      },
+      {
+        "name": "CompositeResolverGeneratorTests.CompositeResolver_MixedResolverTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers(type: \"struct\", version: CSharp7_3)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack002UseConstantOptionsAnalyzerTests.Invocation_WithMutableStaticOptions",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.GenericWithConstraintsThatReferenceTypeParameter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterConstructor(initialModifiers: \"private \", expectedModifiers: \"internal \")",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.PrivateMembersInBaseClassNeedNoAttribution",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MultipleTypesTests.ZeroTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers(type: \"class\", version: CSharp7_3)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "ImplicitResolverForCustomFormattersTests.CustomFormatterWithoutDefaultConstructor_Excluded",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack011PartialTypeRequiredTests.NestedPartialTypeRequiresPartialDeclaringType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.NullStringKey",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.InvalidMessageFormatterType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.GenericsOfT1T2Formatter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembers_AllowPrivateAttribute",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.GenericCustomFormatter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack002UseConstantOptionsAnalyzerTests.Invocation_WithImmutableStaticOptions",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_WithNamespace",
+        "outcome": "Passed"
+      },
+      {
+        "name": "ImplicitResolverForCustomFormattersTests.MultipleFunctionalCustomFormattersForType_MultiFormatter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterConstructor(initialModifiers: \"\", expectedModifiers: \"internal \")",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.SystemCollectionsObjectModelCollection",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterOnlyMixed",
+        "outcome": "Passed"
+      },
+      {
+        "name": "CompositeResolverGeneratorTests.CompositeResolver_Nested",
+        "outcome": "Passed"
+      },
+      {
+        "name": "ImplicitResolverForCustomFormattersTests.CustomFormatterWithoutDefaultConstructor",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.EmbeddedTypes",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack012InaccessibleDataTypeTests.InaccessibleNestedDataType_OuterNesting",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.NullableFormatter",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack012InaccessibleDataTypeTests.InaccessibleNestedDataType",
+        "outcome": "Passed"
+      },
+      {
+        "name": "FormatterCodeFixProviderTests.InaccessibleCustomFormatterType(initialModifiers: \"private \", expectedModifiers: \"internal \")",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.SpecifyFormatterFromStockSet",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.UnionFormatter(container: Namespace)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "PrivateMemberAccessTests.FormatterForClassWithPrivateMembers_Nested_NonPartialTypes(type: \"class\", languageVersion: CSharp7_3)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.UnionFormatter(container: None)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributesToMembersOfRecord",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.Generics_Defined_In_ReferencedProject",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenericsFormatterTests.GenericsOfTFormatter_FormatterOnly",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.SimplifiedNameForKeywordsAndSyntaxSugar",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.EnumFormatter(container: NestingClass, usesMapMode: False)",
+        "outcome": "Passed"
+      },
+      {
+        "name": "GenerationTests.CustomFormatterWithSingletonPattern",
+        "outcome": "Passed"
+      },
+      {
+        "name": "MsgPack00xAnalyzerTests.AddAttributeToTypeForRecordPrimaryConstructor",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterOnlyDefaultValue",
+        "outcome": "Passed"
+      },
+      {
+        "name": "StringKeyedFormatterTests.PropertiesGetterSetterWithDefaultValueInputPartially",
+        "outcome": "Passed"
+      }
+    ],
+    "durationSec": 43,
+    "logTail": "Passed!  - Failed:     0, Passed:   170, Skipped:     0, Total:   170, Duration: 13 s - MessagePack.SourceGenerator.Tests.dll (net8.0)\r"
+  },
+  "refusals": [
+    {
+      "id": "R1",
+      "rule": "contracts",
+      "what": "Analyzer diagnostics for members of referenced-assembly types are now suppressed, and any diagnostic without an in-compilation source location is dropped.",
+      "why": "This changes which user-visible analyzer diagnostics fire. That is a product decision, not a crash fix, and S4 only checks descriptors.",
+      "files": [
+        {
+          "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs"
+        }
+      ],
+      "source": "AI reading"
+    },
+    {
+      "id": "R2",
+      "rule": "honesty",
+      "what": "Documentation added beyond the requirement, with MsgPack004.md stating behavior the code does not implement and contradicting README.",
+      "why": "These are changes beyond the requirement, and the docs misdescribe the behavior.",
+      "files": [
+        {
+          "path": "doc/analyzers/MsgPack004.md"
+        }
+      ],
+      "source": "AI reading"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "line": 985,
+      "description": "Claim C1 disputed: Neither named test exercises BothStringAndIntKeyAreNull (TypeCollector.cs:983-986) or GetPropertyIdentifierLocation (TypeCollector.cs:1434), because every Key attribute in ClosedGenericStruct_FromMetadataReference (GenericsFormatterTests.cs:517) and ClosedGenericRecordStruct_FromMetadataReference (GenericsFormatterTests.cs:559) uses integer key 0 (intKey != null). Also, the quoted requirement identifies three DeclaringSyntaxReferences[0] sites in GetObjectInfo (lines 735, 1009, 1101 in v3.1.8, corresponding to ~711, 985, 1077 with the 24-line offset), and the diff updates only two of them.",
+      "severity": "medium",
+      "source": "breaker (Gemini)"
+    },
+    {
+      "id": "F2",
+      "path": "doc/analyzers/MsgPack004.md",
+      "line": 52,
+      "description": "The doc says members of a referenced-assembly type are reported in the consuming project at the using member. The code does the opposite: `ReportIfLocatedInCompilation` drops them, and README line 1642 says they are reported only by the defining assembly. The two docs contradict each other, and MsgPack004.md is false.",
+      "severity": "medium",
+      "source": "author (Claude)"
+    },
+    {
+      "id": "F3",
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "line": 1446,
+      "description": "The filter applies to every analyzer diagnostic, not only metadata-member ones. Any existing diagnostic created with a null/Location.None location for a source type is now silently suppressed. This could hide real MsgPack00x reports that previously surfaced.",
+      "severity": "medium",
+      "source": "author (Claude)"
+    },
+    {
+      "id": "F4",
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "line": 985,
+      "description": "The issue lists three `DeclaringSyntaxReferences[0]` sites (lines 735, 1009, 1101 in 3.1.8). Only two are visibly changed in this diff. If a third direct index remains elsewhere in `GetObjectInfo`, another metadata path could still throw. Check with a grep for `DeclaringSyntaxReferences[0]`.",
+      "severity": "medium",
+      "source": "author (Claude)"
+    },
+    {
+      "id": "F5",
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "line": 1434,
+      "description": "The hard cast was replaced with `as PropertyDeclarationSyntax`. For a source property declared as a positional record parameter (ParameterSyntax), BothStringAndIntKeyAreNull now gets a null location and is silently dropped by the filter, instead of being reported.",
+      "severity": "low",
+      "source": "author (Claude)"
+    },
+    {
+      "id": "F6",
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "line": 1077,
+      "description": "An unkeyed public member on a metadata type is no longer reported in the consumer. The generator may still emit or assume a formatter for that type, with no warning anywhere if the defining assembly did not run the analyzer (for example, a third-party package).",
+      "severity": "low",
+      "source": "author (Claude)"
+    },
+    {
+      "id": "F7",
+      "path": "doc/analyzers/MsgPack004.md",
+      "line": 52,
+      "description": "MsgPack004.md lines 51-52 claim that unattributed public members of types defined in referenced assemblies are reported in the consuming project at the member that uses the type, which is the exact opposite of the implemented behavior: TypeCollector.cs:1077 locates MemberNeedsKey on the member itself (null/Location.None for metadata), ReportIfLocatedInCompilation (TypeCollector.cs:239, 1446) drops it, README.md:1642 states consuming projects do not report it, and ClosedGenericStruct_FromMetadataReference_UnkeyedMember (GenericsFormatterTests.cs:590-626) asserts zero diagnostics.",
+      "severity": "medium",
+      "source": "breaker (Gemini)"
+    },
+    {
+      "id": "F8",
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "line": 1446,
+      "description": "ReportIfLocatedInCompilation drops any diagnostic with !diagnostic.Location.IsInSource, silently suppressing valid diagnostics on symbols in the current compilation whenever a location helper returns null (Location.None). In particular, GetPropertyIdentifierLocation (line 1434) casts syntax via 'as PropertyDeclarationSyntax', which returns null for positional record/record struct primary-constructor properties (ParameterSyntax) and indexers (IndexerDeclarationSyntax), so BothStringAndIntKeyAreNull (line 985) on a positional record property in the current compilation gets Location.None and is silently dropped; the same applies to diagnostics using GetParameterListLocation (line 1454) on implicitly declared constructors.",
+      "severity": "medium",
+      "source": "breaker (Gemini)"
+    },
+    {
+      "id": "F9",
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "line": 711,
+      "description": "REQ-2283 identified three direct DeclaringSyntaxReferences[0] indexing sites inside GetObjectInfo (lines 735, 1009, 1101 in v3.1.8). Accounting for the 24-line offset (1009 -> 985 and 1101 -> 1077), only two were fixed; the remaining site around line 711 is untouched and will still throw IndexOutOfRangeException if a metadata closed generic value type hits that diagnostic path.",
+      "severity": "medium",
+      "source": "breaker (Gemini)"
+    }
+  ],
+  "out_of_scope": [
+    {
+      "path": "README.md",
+      "description": "New user-facing section on generic types from referenced assemblies; not needed to fix the crash."
+    },
+    {
+      "path": "doc/analyzers/MsgPack004.md",
+      "description": "New section describing analyzer behavior for referenced types; inaccurate relative to the code."
+    },
+    {
+      "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+      "description": "Global `ReportIfLocatedInCompilation` wrapper on all analyzer diagnostics, broader than replacing the `[0]` indexing."
+    }
+  ],
+  "routing": {
+    "level": "focused read",
+    "reasons": [
+      "2 refusal(s) on contracts/honesty grounds need a human look.",
+      "1 claim(s) disputed by the breaker or by the evidence check.",
+      "Evidence took 50 of 218 changed code lines off the list (C4, C5: tests found passing in the real run, claim upheld by the breaker). 168 stay with the owner."
+    ],
+    "must_read": [
+      {
+        "path": "doc/analyzers/MsgPack004.md",
+        "lines": "whole file diff (5 changed lines)",
+        "why": "F2 author (Claude) (L52); F7 breaker (Gemini) (L52); R2 honesty (AI-suggested)",
+        "ranges": [
+          [
+            48,
+            52
+          ]
+        ]
+      },
+      {
+        "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+        "lines": "whole file diff (29 changed lines)",
+        "why": "F1 breaker (Gemini) (L985); F3 author (Claude) (L1446); F4 author (Claude) (L985); F8 breaker (Gemini) (L1446); claim C1 disputed (L985); claim C1 disputed (L1434); R1 contracts (AI-suggested)",
+        "ranges": [
+          [
+            239,
+            239
+          ],
+          [
+            985,
+            985
+          ],
+          [
+            1077,
+            1077
+          ],
+          [
+            1429,
+            1451
+          ]
+        ]
+      },
+      {
+        "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+        "lines": "L4, L6, L499-552, L580-646, L648-650, L659-660, L675-685 (139 of 189 changed lines)",
+        "why": "no claim covers these lines; C6 passed its tests but the breaker did not uphold it",
+        "ranges": [
+          [
+            4,
+            4
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            499,
+            552
+          ],
+          [
+            580,
+            646
+          ],
+          [
+            648,
+            650
+          ],
+          [
+            659,
+            660
+          ],
+          [
+            675,
+            685
+          ]
+        ]
+      }
+    ],
+    "not_required": [
+      {
+        "what": "doc file(s)",
+        "count": 1,
+        "why": "prose; covered by the story"
+      },
+      {
+        "what": "changed code line(s) released by evidence",
+        "count": 50,
+        "why": "each is cited by a claim with tests found passing in the real run and upheld by the breaker: C5, C4"
+      }
+    ],
+    "real_files": 4,
+    "total_files": 4,
+    "reading_load": {
+      "must_read_lines": 168,
+      "code_lines": 218,
+      "share": 0.771,
+      "released_lines": 50,
+      "released_by": [
+        {
+          "claim": "C5",
+          "lines": 35
+        },
+        {
+          "claim": "C4",
+          "lines": 15
+        }
+      ],
+      "kept": [
+        {
+          "why": "no claim covers the line",
+          "lines": 128
+        },
+        {
+          "why": "refused",
+          "lines": 29
+        },
+        {
+          "why": "passing test, but not upheld by the breaker",
+          "lines": 11
+        }
+      ],
+      "generated_lines": 0,
+      "generated_released": false,
+      "doc_lines": 10,
+      "doc_lines_flagged": 5,
+      "all_lines": 228,
+      "share_of_all": 0.759
+    },
+    "lines": [
+      {
+        "path": "README.md",
+        "kind": "doc",
+        "changed_lines": 5,
+        "must_read": [],
+        "must_read_lines": 0,
+        "released": [],
+        "released_lines": 0
+      },
+      {
+        "path": "doc/analyzers/MsgPack004.md",
+        "kind": "doc",
+        "changed_lines": 5,
+        "must_read": [
+          [
+            48,
+            52
+          ]
+        ],
+        "must_read_lines": 5,
+        "released": [],
+        "released_lines": 0
+      },
+      {
+        "path": "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs",
+        "kind": "src",
+        "changed_lines": 29,
+        "must_read": [
+          [
+            239,
+            239
+          ],
+          [
+            985,
+            985
+          ],
+          [
+            1077,
+            1077
+          ],
+          [
+            1429,
+            1451
+          ]
+        ],
+        "must_read_lines": 29,
+        "released": [],
+        "released_lines": 0
+      },
+      {
+        "path": "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs",
+        "kind": "test",
+        "changed_lines": 189,
+        "must_read": [
+          [
+            4,
+            4
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            499,
+            552
+          ],
+          [
+            580,
+            646
+          ],
+          [
+            648,
+            650
+          ],
+          [
+            659,
+            660
+          ],
+          [
+            675,
+            685
+          ]
+        ],
+        "must_read_lines": 139,
+        "released": [
+          [
+            553,
+            579
+          ],
+          [
+            647,
+            647
+          ],
+          [
+            651,
+            658
+          ],
+          [
+            661,
+            674
+          ]
+        ],
+        "released_lines": 50
+      }
+    ]
+  },
+  "requirement_coverage": {
+    "sentences": 26,
+    "quoted": 5,
+    "not_quoted": [
+      "Because the generator then \"will not contribute to the output\", the compiling assembly silently ends up with **no generated resolver at all**.",
+      "It is only a warning, so a normal build looks fine, but trimmed and NativeAOT apps fail at runtime.",
+      "In our case three assemblies of a large app had been shipping without a resolver across two releases before we noticed.",
+      "`app`, with a `ProjectReference` to `lib`:",
+      "Both projects are in the attached `mp-repro.zip`.",
+      "Runtime: .NET 10 (SDK 10.0.204), Windows 11",
+      "**What triggers it.** `Item` is declared in `lib`, `Cmd` in `app`:",
+      "| `Item` declared as | result |",
+      "| `record struct Item<T>` | **crash** |",
+      "| `struct Item<T>` | **crash** |",
+      "| `struct Item` | ok |",
+      "| `record struct Item` | ok |",
+      "| `class Item<T>` | ok |",
+      "| `record class Item<T>` | ok |",
+      "Moving the identical `Item<T>` declaration into `app` itself makes the crash disappear, which is what makes this specific to metadata symbols.",
+      "`CollectGeneric` line 661 is the closed-generic branch that calls `GetObjectInfo` directly:",
+      "so `GetObjectInfo` runs against a type that has no syntax.",
+      "I did not narrow down which of the three fires.",
+      "**Getting the stack trace.** Console output truncates the exception to its message; `-p:ErrorLog=out.sarif` preserves the full description, including the stack trace and an `ISymbol:` context line naming the offending type:",
+      "**Workaround.** Putting `[MessagePackFormatter(typeof(ItemFormatter<>))]` on the generic value type short-circuits `CollectCore` (line 356) before `GetObjectInfo` is reached, at the cost of hand-writing the formatter.",
+      "**Possibly related:** #2092 reports CS8785 from the v3 generator, but with a different inner exception and no repro."
+    ],
+    "bad_quotes": []
+  },
+  "not_checked": [
+    "A passing test backs a claim only as far as the test goes: the tool checks that the named test ran and passed, not which lines it executed.",
+    "Behaviour on other target frameworks / Unity / NativeAOT was not exercised.",
+    "Performance and allocation impact were not measured."
+  ],
+  "raw": {
+    "author_text": "{\"story\":{\"summary\":\"Stops the generator and analyzer from crashing on closed generic structs that come from a referenced assembly. Two places that read `DeclaringSyntaxReferences[0]` now tolerate an empty list. Every diagnostic the analyzer reports now passes through a new filter, `ReportIfLocatedInCompilation`, which drops any diagnostic whose location is not in a source tree of the current compilation. Three tests compile a library to metadata and check that the consuming project builds without warnings and gets its resolver. Two doc sections are added.\",\"why\":\"Issue #2283: for metadata types `DeclaringSyntaxReferences` is empty, so indexing `[0]` threw `IndexOutOfRangeException`. The generator then produced no resolver at all.\",\"touches_beyond_requirement\":[\"A global filter on all analyzer diagnostics: any diagnostic with no in-compilation source location is now silently dropped, not just ones caused by metadata types.\",\"`GetPropertyIdentifierLocation` uses `as` instead of a hard cast, which changes behavior for non-`PropertyDeclarationSyntax` declarations in source.\",\"README and doc/analyzers/MsgPack004.md text, and the two docs contradict each other.\"],\"confidence_overview\":\"High that the two edited index sites no longer throw. Medium that the crash is fully fixed: the issue names three indexing sites and only two are visibly changed. Medium on whether the tests cover the analyzer as well as the generator. Low on the docs: MsgPack004.md describes behavior the code does not have.\"},\"claims\":[{\"id\":\"C1\",\"text\":\"The BothStringAndIntKeyAreNull diagnostic no longer indexes `DeclaringSyntaxReferences[0]`. It uses a `FirstOrDefault`-based helper that returns null for metadata properties.\",\"requirement_quote\":\"Several diagnostic paths inside it index `DeclaringSyntaxReferences[0]` directly (lines 735, 1009, 1101) instead of using `FirstOrDefault()`\",\"kind\":\"behavior\",\"confidence\":\"high\",\"citations\":[{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"start_line\":985,\"end_line\":985},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"start_line\":1434,\"end_line\":1434}],\"tests\":[\"ClosedGenericStruct_FromMetadataReference\",\"ClosedGenericRecordStruct_FromMetadataReference\"],\"static_checks\":[]},{\"id\":\"C2\",\"text\":\"The MemberNeedsKey diagnostic uses `FirstOrDefault()?` instead of `[0]`, so an unkeyed public member of a metadata type no longer throws.\",\"requirement_quote\":\"that collection is empty for a metadata symbol\",\"kind\":\"behavior\",\"confidence\":\"high\",\"citations\":[{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"start_line\":1077,\"end_line\":1077}],\"tests\":[\"ClosedGenericStruct_FromMetadataReference_UnkeyedMember\"],\"static_checks\":[]},{\"id\":\"C3\",\"text\":\"Analyzer diagnostics are now reported only when their location is in a source tree of the current compilation. Diagnostics about metadata members are therefore dropped in the consuming project.\",\"requirement_quote\":\"A clean build, with a generated resolver in `app`.\",\"kind\":\"behavior\",\"confidence\":\"high\",\"citations\":[{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"start_line\":239,\"end_line\":239},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"start_line\":1444,\"end_line\":1450}],\"tests\":[\"ClosedGenericStruct_FromMetadataReference_UnkeyedMember\"],\"static_checks\":[]},{\"id\":\"C4\",\"text\":\"The tests compile the defining source into a real metadata-only image, so the referenced types have no syntax, matching the bug's trigger.\",\"requirement_quote\":\"So it needs all three of: **generic**, **value type**, **from a referenced assembly**.\",\"kind\":\"test\",\"confidence\":\"high\",\"citations\":[{\"path\":\"tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs\",\"start_line\":661,\"end_line\":674},{\"path\":\"tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs\",\"start_line\":647,\"end_line\":647}],\"tests\":[\"ClosedGenericStruct_FromMetadataReference\",\"ClosedGenericRecordStruct_FromMetadataReference\",\"ClosedGenericStruct_FromMetadataReference_UnkeyedMember\"],\"static_checks\":[\"S8\"]},{\"id\":\"C5\",\"text\":\"The tests assert that the generator run reports no warning-or-higher diagnostics and that the expected resolver hint name is generated. One test reproduces the issue's exact record-struct repro.\",\"requirement_quote\":\"`app.dll` contains no `GeneratedMessagePackResolver`.\",\"kind\":\"test\",\"confidence\":\"medium\",\"citations\":[{\"path\":\"tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs\",\"start_line\":553,\"end_line\":579},{\"path\":\"tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs\",\"start_line\":651,\"end_line\":658}],\"tests\":[\"ClosedGenericRecordStruct_FromMetadataReference\"],\"static_checks\":[\"S8\"]},{\"id\":\"C6\",\"text\":\"The analyzer (AD0001) path is exercised through `VerifyCS.Test`. The diff does not show whether this source-generator verifier actually runs `MsgPack00xMessagePackAnalyzer`.\",\"requirement_quote\":\"Both `MessagePackGenerator` (CS8785) and `MsgPack00xMessagePackAnalyzer` (AD0001) throw\",\"kind\":\"test\",\"confidence\":\"low\",\"citations\":[{\"path\":\"tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs\",\"start_line\":637,\"end_line\":648}],\"tests\":[\"ClosedGenericStruct_FromMetadataReference\",\"ClosedGenericRecordStruct_FromMetadataReference\",\"ClosedGenericStruct_FromMetadataReference_UnkeyedMember\"],\"static_checks\":[]},{\"id\":\"C7\",\"text\":\"Scope: no public API, wire format or analyzer rule descriptors changed. The docs and the global diagnostic filter go beyond a minimal crash fix.\",\"requirement_quote\":\"\",\"kind\":\"scope\",\"confidence\":\"high\",\"citations\":[{\"path\":\"README.md\",\"start_line\":1639,\"end_line\":1642},{\"path\":\"doc/analyzers/MsgPack004.md\",\"start_line\":49,\"end_line\":52}],\"tests\":[],\"static_checks\":[\"S3\",\"S4\",\"S5\",\"S7\"]}],\"concerns\":[{\"path\":\"doc/analyzers/MsgPack004.md\",\"line\":52,\"description\":\"The doc says members of a referenced-assembly type are reported in the consuming project at the using member. The code does the opposite: `ReportIfLocatedInCompilation` drops them, and README line 1642 says they are reported only by the defining assembly. The two docs contradict each other, and MsgPack004.md is false.\",\"severity\":\"medium\"},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":1446,\"description\":\"The filter applies to every analyzer diagnostic, not only metadata-member ones. Any existing diagnostic created with a null/Location.None location for a source type is now silently suppressed. This could hide real MsgPack00x reports that previously surfaced.\",\"severity\":\"medium\"},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":985,\"description\":\"The issue lists three `DeclaringSyntaxReferences[0]` sites (lines 735, 1009, 1101 in 3.1.8). Only two are visibly changed in this diff. If a third direct index remains elsewhere in `GetObjectInfo`, another metadata path could still throw. Check with a grep for `DeclaringSyntaxReferences[0]`.\",\"severity\":\"medium\"},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":1434,\"description\":\"The hard cast was replaced with `as PropertyDeclarationSyntax`. For a source property declared as a positional record parameter (ParameterSyntax), BothStringAndIntKeyAreNull now gets a null location and is silently dropped by the filter, instead of being reported.\",\"severity\":\"low\"},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":1077,\"description\":\"An unkeyed public member on a metadata type is no longer reported in the consumer. The generator may still emit or assume a formatter for that type, with no warning anywhere if the defining assembly did not run the analyzer (for example, a third-party package).\",\"severity\":\"low\"}],\"out_of_scope\":[{\"path\":\"README.md\",\"description\":\"New user-facing section on generic types from referenced assemblies; not needed to fix the crash.\"},{\"path\":\"doc/analyzers/MsgPack004.md\",\"description\":\"New section describing analyzer behavior for referenced types; inaccurate relative to the code.\"},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"description\":\"Global `ReportIfLocatedInCompilation` wrapper on all analyzer diagnostics, broader than replacing the `[0]` indexing.\"}],\"refusal_candidates\":[{\"rule\":\"contracts\",\"what\":\"Analyzer diagnostics for members of referenced-assembly types are now suppressed, and any diagnostic without an in-compilation source location is dropped.\",\"why\":\"This changes which user-visible analyzer diagnostics fire. That is a product decision, not a crash fix, and S4 only checks descriptors.\",\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"start_line\":0,\"end_line\":0},{\"rule\":\"honesty\",\"what\":\"Documentation added beyond the requirement, with MsgPack004.md stating behavior the code does not implement and contradicting README.\",\"why\":\"These are changes beyond the requirement, and the docs misdescribe the behavior.\",\"path\":\"doc/analyzers/MsgPack004.md\",\"start_line\":0,\"end_line\":0}]}",
+    "breaker_text": "{\"verdicts\":[{\"claim_id\":\"C1\",\"verdict\":\"disputed\",\"reason\":\"Neither named test exercises BothStringAndIntKeyAreNull (TypeCollector.cs:983-986) or GetPropertyIdentifierLocation (TypeCollector.cs:1434), because every Key attribute in ClosedGenericStruct_FromMetadataReference (GenericsFormatterTests.cs:517) and ClosedGenericRecordStruct_FromMetadataReference (GenericsFormatterTests.cs:559) uses integer key 0 (intKey != null). Also, the quoted requirement identifies three DeclaringSyntaxReferences[0] sites in GetObjectInfo (lines 735, 1009, 1101 in v3.1.8, corresponding to ~711, 985, 1077 with the 24-line offset), and the diff updates only two of them.\",\"citations\":[{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":985},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":1434},{\"path\":\"tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs\",\"line\":517},{\"path\":\"tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs\",\"line\":559}]},{\"claim_id\":\"C2\",\"verdict\":\"upheld\",\"reason\":\"Checked TypeCollector.cs:1077, which replaces DeclaringSyntaxReferences[0] with DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax().GetLocation(), yielding null (Location.None) instead of throwing on metadata symbols. Checked ClosedGenericStruct_FromMetadataReference_UnkeyedMember (GenericsFormatterTests.cs:590-626), which compiles a generic struct with an unattributed public int Unkeyed property (line 603) into a metadata image and consumes MyGenericStruct<int>, exercising MemberNeedsKey on a metadata member.\",\"citations\":[{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":1077},{\"path\":\"tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs\",\"line\":603}]},{\"claim_id\":\"C3\",\"verdict\":\"cannot_tell\",\"reason\":\"TypeCollector.cs:239 and 1444-1450 filter diagnostics passed to this.reportDiagnostic by diagnostic.Location.IsInSource && this.compilation.ContainsSyntaxTree(diagnostic.Location.SourceTree), which drops Location.None diagnostics such as MemberNeedsKey on metadata members. However, the diff does not show MsgPack00xMessagePackAnalyzer.cs, the unseen parts of TypeCollector.cs (where GetObjectInfo takes ISymbol callerSymbol, which can be in the consuming compilation), or CSharpSourceGeneratorVerifier (GenericsFormatterTests.cs:7, 638), so the diff alone cannot confirm whether all metadata-member diagnostics are dropped or whether the named test runs the analyzer.\",\"citations\":[{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":239},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":1446},{\"path\":\"tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs\",\"line\":638}]},{\"claim_id\":\"C4\",\"verdict\":\"upheld\",\"reason\":\"Checked CompileToMetadataReferenceAsync (GenericsFormatterTests.cs:661-674), which emits the defining compilation to a MemoryStream and calls MetadataReference.CreateFromImage(stream.ToArray()) (line 673), creating PE metadata symbols with empty DeclaringSyntaxReferences, and adds that reference to both test runs (lines 647 and 652) for generic struct and record struct types.\",\"citations\":[{\"path\":\"tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs\",\"line\":647},{\"path\":\"tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs\",\"line\":673}]},{\"claim_id\":\"C5\",\"verdict\":\"upheld\",\"reason\":\"Checked RunWithMetadataReferenceAsync (GenericsFormatterTests.cs:653-658), which runs MessagePackGenerator via CSharpGeneratorDriver, asserts no diagnostics of Warning severity or higher (catching CS8785), and asserts expectedResolverHintName is in GeneratedSources. Checked ClosedGenericRecordStruct_FromMetadataReference (lines 553-579), which reproduces Lib.Item<T> and App.Cmd from REQ-2283 with AppResolver added to verify resolver generation.\",\"citations\":[{\"path\":\"tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs\",\"line\":559},{\"path\":\"tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs\",\"line\":656},{\"path\":\"tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs\",\"line\":658}]},{\"claim_id\":\"C6\",\"verdict\":\"cannot_tell\",\"reason\":\"RunWithMetadataReferenceAsync (GenericsFormatterTests.cs:638-648) uses VerifyCS.Test, aliased to CSharpSourceGeneratorVerifier<MessagePack.SourceGenerator.MessagePackGenerator> (line 7), while lines 653-655 run only CSharpGeneratorDriver. Because CSharpSourceGeneratorVerifier is not shown in the diff and Roslyn's base source-generator test harness does not attach DiagnosticAnalyzers unless overridden, the diff alone does not show whether MsgPack00xMessagePackAnalyzer (AD0001) runs.\",\"citations\":[{\"path\":\"tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs\",\"line\":7},{\"path\":\"tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs\",\"line\":638}]},{\"claim_id\":\"C7\",\"verdict\":\"upheld\",\"reason\":\"Checked all four changed files: only private members in TypeCollector.cs were modified or added, leaving public APIs, wire format, and analyzer rule descriptors untouched, while README.md:1639-1642, doc/analyzers/MsgPack004.md:49-52, and the ReportIfLocatedInCompilation filter (TypeCollector.cs:239, 1444-1450) go beyond replacing [0] with FirstOrDefault().\",\"citations\":[{\"path\":\"README.md\",\"line\":1639},{\"path\":\"doc/analyzers/MsgPack004.md\",\"line\":49},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":239}]}],\"missed_problems\":[{\"path\":\"doc/analyzers/MsgPack004.md\",\"line\":52,\"description\":\"MsgPack004.md lines 51-52 claim that unattributed public members of types defined in referenced assemblies are reported in the consuming project at the member that uses the type, which is the exact opposite of the implemented behavior: TypeCollector.cs:1077 locates MemberNeedsKey on the member itself (null/Location.None for metadata), ReportIfLocatedInCompilation (TypeCollector.cs:239, 1446) drops it, README.md:1642 states consuming projects do not report it, and ClosedGenericStruct_FromMetadataReference_UnkeyedMember (GenericsFormatterTests.cs:590-626) asserts zero diagnostics.\",\"severity\":\"medium\"},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":1446,\"description\":\"ReportIfLocatedInCompilation drops any diagnostic with !diagnostic.Location.IsInSource, silently suppressing valid diagnostics on symbols in the current compilation whenever a location helper returns null (Location.None). In particular, GetPropertyIdentifierLocation (line 1434) casts syntax via 'as PropertyDeclarationSyntax', which returns null for positional record/record struct primary-constructor properties (ParameterSyntax) and indexers (IndexerDeclarationSyntax), so BothStringAndIntKeyAreNull (line 985) on a positional record property in the current compilation gets Location.None and is silently dropped; the same applies to diagnostics using GetParameterListLocation (line 1454) on implicitly declared constructors.\",\"severity\":\"medium\"},{\"path\":\"src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs\",\"line\":711,\"description\":\"REQ-2283 identified three direct DeclaringSyntaxReferences[0] indexing sites inside GetObjectInfo (lines 735, 1009, 1101 in v3.1.8). Accounting for the 24-line offset (1009 -> 985 and 1101 -> 1077), only two were fixed; the remaining site around line 711 is untouched and will still throw IndexOutOfRangeException if a metadata closed generic value type hits that diagnostic path.\",\"severity\":\"medium\"}]}"
+  }
+}
