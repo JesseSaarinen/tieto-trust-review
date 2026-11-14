@@ -56,6 +56,8 @@ Every changed line starts on the owner's reading list. A code line comes off onl
 ## Rules
 
 - Never commit `.env*` (except `.env.example`). Never push without Jesse asking.
+- Public since 14 Nov: `github.com/JesseSaarinen/tieto-trust-review` (branch `master`). The walkthrough PRs 1, 2 and 3 are in the fork `github.com/JesseSaarinen/junction26-messagepack-csharp`; never open a PR against Tieto's own repo (pass `--repo` to `gh`).
+- Commits here use Jesse's GitHub no-reply address (repo-local `user.email`), so his Aalto address stays out of the public history. Don't change it.
 - Never read the answer key (`C:\Users\Jesse\Documents\junction-2026-tieto-answer-key\`): the reviewer must stay blind to the planted bugs. Only the separate scoring session opens it. Don't tune prompts or rules to individual planted-bug results.
 - Don't switch branches in `../tieto-messagepack`; tests run in worktrees under `.work/`.
 - Measurement runs use `--no-ledger` (the batch command always does): they neither read nor write `ledger.json`.

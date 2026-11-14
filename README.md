@@ -23,6 +23,7 @@ The full concept, principles, trade-offs and limits are in the [concept card](do
 | Concept card | [docs/concept-card.md](docs/concept-card.md) |
 | Measurement on 22 planted bugs and 10 clean changes | [docs/measurement.md](docs/measurement.md) |
 | One evidence pack, as the owner sees it | [packs/ju26-issue-2283.run2.md](packs/ju26-issue-2283.run2.md) |
+| The walkthrough: three pull requests, each with its pack as a comment | [REQ-2283, focused read](https://github.com/JesseSaarinen/junction26-messagepack-csharp/pull/1) · [REQ-2297, size isn't risk](https://github.com/JesseSaarinen/junction26-messagepack-csharp/pull/2) · [REQ-2129, refused and full read](https://github.com/JesseSaarinen/junction26-messagepack-csharp/pull/3) |
 | Decision log | [docs/decision-log.md](docs/decision-log.md) |
 | Lessons log: failure modes we hit | [docs/lessons-log.md](docs/lessons-log.md) |
 | Owner sign-off records | [records/](records/) |
