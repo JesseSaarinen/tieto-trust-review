@@ -1,0 +1,60 @@
+{
+  "record_type": "owner-signoff/v1",
+  "signed_at": "2026-11-14T12:48:23.901Z",
+  "owner": "Jesse Saarinen",
+  "decision": "accept",
+  "requirement_id": "REQ-2283",
+  "branch": "ju26-issue-2283",
+  "commit": "9df83c38409c8bfad0517aebffe48211eda4a5b4",
+  "pack_id": "07481956050b",
+  "routing": "focused read",
+  "checked": {
+    "by_tests": "170 passed / 0 failed (tests/MessagePack.SourceGenerator.Tests/MessagePack.SourceGenerator.Tests.csproj)",
+    "by_static_checks": [
+      "S3 pass",
+      "S4 pass",
+      "S5 pass",
+      "S6 pass",
+      "S7 pass",
+      "S8 pass"
+    ],
+    "by_breaker": "gemini-4-carbon: 10 upheld, 2 disputed, 0 cannot tell",
+    "claims_by_method": {
+      "test run": [
+        "C5",
+        "C1",
+        "C3",
+        "C4",
+        "C6",
+        "C7",
+        "C8"
+      ],
+      "static check": [
+        "C12"
+      ],
+      "AI reading only": [
+        "C2",
+        "C9",
+        "C10",
+        "C11"
+      ],
+      "not checked": []
+    },
+    "by_owner": [
+      "TypeCollector.cs",
+      "GenericsFormatterTests.cs",
+      "README.md"
+    ]
+  },
+  "not_checked": [
+    "A passing test backs a claim only as far as the test goes: the tool checks that the named test ran and passed, not which lines it executed.",
+    "Behaviour on other target frameworks / Unity / NativeAOT was not exercised.",
+    "Performance and allocation impact were not measured."
+  ],
+  "refusals_acknowledged": [
+    "R1",
+    "R2"
+  ],
+  "residual_risk_accepted": "I accept that warnings without a source location are now dropped, including the null-key warning on positional record properties, and that the README states a new reporting policy. The null-key path has no test.",
+  "note": ""
+}

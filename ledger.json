@@ -5,17 +5,110 @@
   "areas": {
     "src/MessagePack.SourceGenerator/CodeAnalysis": {
       "reviews": 0,
-      "signoffs": 0,
-      "findings_accepted": 0,
-      "findings_rejected": 0,
+      "signoffs": 1,
+      "findings_accepted": 6,
+      "findings_rejected": 1,
       "escapes": 1,
-      "clean_since_escape": 0,
+      "clean_since_escape": 1,
       "status": "probation",
       "history": [
         {
           "at": "2026-11-14T12:09:26.107Z",
           "event": "escape",
           "ref": "planted-bug audit 14 Nov: seeded-01 escaped at L2 by the line rule, a finding described it outside the 3-line window"
+        },
+        {
+          "at": "2026-11-14T12:48:23.903Z",
+          "event": "signoff",
+          "ref": "07481956050b"
+        },
+        {
+          "at": "2026-11-14T12:48:23.904Z",
+          "event": "finding-accepted",
+          "ref": "07481956050b/F1"
+        },
+        {
+          "at": "2026-11-14T12:48:23.904Z",
+          "event": "finding-accepted",
+          "ref": "07481956050b/F4"
+        },
+        {
+          "at": "2026-11-14T12:48:23.904Z",
+          "event": "finding-accepted",
+          "ref": "07481956050b/F5"
+        },
+        {
+          "at": "2026-11-14T12:48:23.904Z",
+          "event": "finding-accepted",
+          "ref": "07481956050b/F6"
+        },
+        {
+          "at": "2026-11-14T12:48:23.904Z",
+          "event": "finding-accepted",
+          "ref": "07481956050b/F7"
+        },
+        {
+          "at": "2026-11-14T12:48:23.904Z",
+          "event": "finding-accepted",
+          "ref": "07481956050b/F8"
+        },
+        {
+          "at": "2026-11-14T12:48:23.904Z",
+          "event": "finding-rejected",
+          "ref": "07481956050b/F3"
+        }
+      ]
+    },
+    "README.md": {
+      "reviews": 0,
+      "signoffs": 1,
+      "findings_accepted": 0,
+      "findings_rejected": 0,
+      "escapes": 0,
+      "clean_since_escape": 0,
+      "status": "earning",
+      "history": [
+        {
+          "at": "2026-11-14T12:48:23.903Z",
+          "event": "signoff",
+          "ref": "07481956050b"
+        }
+      ]
+    },
+    "doc": {
+      "reviews": 0,
+      "signoffs": 1,
+      "findings_accepted": 0,
+      "findings_rejected": 0,
+      "escapes": 0,
+      "clean_since_escape": 0,
+      "status": "earning",
+      "history": [
+        {
+          "at": "2026-11-14T12:48:23.903Z",
+          "event": "signoff",
+          "ref": "07481956050b"
+        }
+      ]
+    },
+    "tests/MessagePack.SourceGenerator.Tests": {
+      "reviews": 0,
+      "signoffs": 1,
+      "findings_accepted": 1,
+      "findings_rejected": 0,
+      "escapes": 0,
+      "clean_since_escape": 0,
+      "status": "earning",
+      "history": [
+        {
+          "at": "2026-11-14T12:48:23.903Z",
+          "event": "signoff",
+          "ref": "07481956050b"
+        },
+        {
+          "at": "2026-11-14T12:48:23.904Z",
+          "event": "finding-accepted",
+          "ref": "07481956050b/F2"
         }
       ]
     }
